@@ -1,0 +1,2483 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1730">
+<title>Famille</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="Famille.png">
+<link rel="apple-touch-icon" href="Famille.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Famille">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    /* Palette « lavande froide » — sobre et pro */
+    --bg-main: #f0eef5;
+    --bg-cell: #fbfafd;
+    --bg-cell-weekend: #e6e1ee;
+    --bg-cell-off: #fbe0e6;
+    --bg-cell-off-weekend: #f7c9d3;
+    --bg-cell-other: #e2dde9;
+    --bg-modal: #fbfafd;
+    --bg-input: #fbfafd;
+    --bg-weekday: #ddd7e8;
+    --border: #b7afc7;
+    --border-input: #c5bed4;
+    --border-light: #d8d2e2;
+    --text-main: #1f1a2e;
+    --text-muted: #544e66;
+    --text-faint: #867f9a;
+    --text-weekend: #6b4d9e;
+    --accent: #7e5fb8;
+    --accent-deep: #4d3b6e;
+    --accent-bg: #ece4f5;
+    --header-bg: #1a1730;
+    --header-text: #f0eef5;
+    --modal-overlay: rgba(20,15,40,0.55);
+  }
+  body.dark {
+    --bg-main: #1d1a28;
+    --bg-cell: #28253a;
+    --bg-cell-weekend: #2e2a40;
+    --bg-cell-off: #3d2530;
+    --bg-cell-off-weekend: #4a2a38;
+    --bg-cell-other: #231f30;
+    --bg-modal: #28253a;
+    --bg-input: #322d44;
+    --bg-weekday: #221e30;
+    --border: #3e3a52;
+    --border-input: #4a4660;
+    --border-light: #3e3a52;
+    --text-main: #ebe7f0;
+    --text-muted: #aaa3bc;
+    --text-faint: #7a7290;
+    --text-weekend: #b39de0;
+    --accent: #9b7bc4;
+    --accent-deep: #d0bff0;
+    --accent-bg: #322a44;
+    --header-bg: #13101f;
+    --header-text: #ebe7f0;
+    --modal-overlay: rgba(0,0,0,0.75);
+  }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg-main);
+    color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  body { display: flex; flex-direction: column; }
+
+  /* ====== HEADER ====== */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--header-bg);
+    color: var(--header-text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 10;
+    flex-shrink: 0;
+  }
+  .month-nav { display: flex; align-items: center; gap: 4px; }
+  .month-nav button {
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: var(--header-text);
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    font-size: 18px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+  }
+  .month-nav button:active { background: rgba(255,255,255,0.18); }
+  .month-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 17px;
+    min-width: 150px;
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+  .header-actions { display: flex; gap: 5px; }
+  .header-actions button {
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: var(--header-text);
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .header-actions button:active { background: rgba(255,255,255,0.18); }
+  .header-actions button.active-paint {
+    background: var(--accent);
+    color: white;
+  }
+  .header-actions button.active-erase {
+    background: #c0392b;
+    color: white;
+  }
+
+  /* ====== ERASE MODE BAR ====== */
+  .erase-bar {
+    display: none;
+    background: #fde0dc;
+    border-bottom: 1px solid #c0392b;
+    padding: 8px 10px;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .erase-bar.show { display: flex; }
+  .erase-info {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8e1f15;
+  }
+  .erase-exit {
+    background: transparent;
+    border: 1px solid #8e1f15;
+    color: #8e1f15;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
+
+  /* Events deviennent cliquables individuellement en mode gomme */
+  .day.erase-mode .event {
+    cursor: pointer;
+    box-shadow: 0 0 0 1px white, 0 0 0 2px rgba(192,57,43,0.4);
+  }
+  .day.erase-mode .event:active {
+    transform: scale(0.95);
+  }
+
+  /* ====== PAINT MODE BAR ====== */
+  .paint-bar {
+    display: none;
+    background: var(--accent-bg);
+    border-bottom: 1px solid var(--accent);
+    padding: 6px 10px;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .paint-bar.show { display: flex; }
+  .paint-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-deep);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .paint-templates {
+    display: flex;
+    gap: 5px;
+    flex: 1;
+    overflow-x: auto;
+    padding: 2px 4px 2px 0;
+    /* Indicateur visuel : un dégradé sur la droite suggère qu'il y a plus à voir */
+    mask-image: linear-gradient(to right, black calc(100% - 16px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 16px), transparent 100%);
+    scrollbar-width: none;
+  }
+  .paint-templates::-webkit-scrollbar { display: none; }
+  .paint-tpl {
+    background: var(--tpl-color, #5b8def);
+    color: var(--tpl-text, white);
+    border: 2px solid transparent;
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+    transition: transform 0.1s;
+  }
+  .paint-tpl.selected {
+    border-color: var(--text-main);
+    transform: scale(1.05);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+  .paint-exit {
+    background: transparent;
+    border: 1px solid var(--accent-deep);
+    color: var(--accent-deep);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
+
+  /* ====== WEEKDAY HEADER ====== */
+  .weekday-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--bg-weekday);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .weekday-row div {
+    padding: 5px 4px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+  }
+  .weekday-row div.weekend { color: var(--text-weekend); }
+
+  /* ====== CALENDAR GRID ====== */
+  .calendar {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 1fr;
+    gap: 0;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .day {
+    background: var(--bg-cell);
+    padding: 3px 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    position: relative;
+    min-height: 0;
+    /* Bordures fines pour séparer les cases sans utiliser de gap */
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  /* Cellule contenant un événement "à cheval" : on autorise le débordement
+     horizontal vers la cellule voisine pour que le label "Nuit" puisse être visible */
+  .day.has-span {
+    overflow: visible;
+    z-index: 1; /* au-dessus des autres pour le label */
+  }
+  .day.other-month { background: var(--bg-cell-other); opacity: 0.55; }
+  .day.weekend { background: var(--bg-cell-weekend); }
+
+  /* Vacances ET jours fériés : MÊME couleur de fond (jaune doux) */
+  .day.off { background: var(--bg-cell-off); }
+  .day.off.weekend { background: var(--bg-cell-off-weekend); }
+
+  .day.today { box-shadow: inset 0 0 0 2px var(--accent); }
+
+  /* Mode peinture : highlight au tap */
+  .day.paint-flash {
+    animation: paintFlash 0.4s ease-out;
+  }
+  @keyframes paintFlash {
+    0% { background: var(--accent); }
+    100% { background: var(--bg-original, #fbfafd); }
+  }
+
+  .day-number {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 2px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .day.other-month .day-number { color: var(--text-faint); }
+  .day.weekend .day-number { color: var(--text-weekend); }
+
+  /* Pastille rouge pour jour férié */
+  .holiday-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #c0392b;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px white;
+  }
+
+  .events {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    flex: 1;
+  }
+  /* Quand la case contient un span, laisser le label "Nuit" déborder horizontalement */
+  .day.has-span .events {
+    overflow: visible;
+    /* La barre Nuit est à top:22px, hauteur 14px → finit à 36px depuis le haut de la case.
+       Les events de la case commencent normalement à la suite du day-number (~16px de haut).
+       Il faut donc décaler de 22px (= 36 - 16 + un peu d'air) pour passer sous la barre. */
+    padding-top: 22px;
+  }
+  .event {
+    background: var(--ev-color, #5b8def);
+    color: var(--ev-text, white);
+    border-radius: 3px;
+    padding: 2px 4px;
+    font-size: 10px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    min-height: 14px;
+  }
+  /* Événements "à cheval" : UN SEUL élément, ancré au coin droit de la case avec
+     left: 100% (= frontière droite), puis centré sur ce point via translate(-50%).
+     La largeur s'adapte AU CONTENU (display inline-flex) pour garantir que le texte
+     entier reste sur le fond coloré, jamais sur le fond clair du calendrier. */
+  .event.span-right {
+    position: absolute;
+    top: 22px;
+    left: 100%;
+    transform: translateX(-100%);
+    height: 14px;
+    /* width et right NON DÉFINIS : la largeur s'adapte au contenu */
+    background: var(--ev-color, #5b8def);
+    color: var(--ev-text, white);
+    border-radius: 3px;
+    padding: 0 8px;
+    overflow: visible;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    z-index: 2;
+    white-space: nowrap;
+  }
+  .event.span-right .label {
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    flex-shrink: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+  .event.span-right .time {
+    display: none;
+  }
+  /* La moitié-gauche du jour suivant : barre colorée sans texte */
+  .event.span-left {
+    position: absolute;
+    top: 22px;
+    left: 0;
+    width: 40%;
+    height: 14px;
+    background: var(--ev-color, #5b8def);
+    border-radius: 0 3px 3px 0;
+    padding: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    z-index: 1;
+  }
+  .event.span-left .label,
+  .event.span-left .time {
+    display: none;
+  }
+  .event .time {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .event .label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+  }
+
+  /* ====== MODAL ====== */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--modal-overlay);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 12px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--bg-cell);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 92vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .modal-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--header-bg);
+    color: var(--header-text);
+    border-radius: 14px 14px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .modal-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .modal-close {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: var(--header-text);
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .modal-body { padding: 12px 14px 14px; }
+
+  .templates-section { margin-bottom: 12px; }
+  .templates-header {
+    font-family: 'Fraunces', serif;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .templates-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .template-btn {
+    background: var(--tpl-color, #5b8def);
+    color: var(--tpl-text, white);
+    border: none;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 28px;
+  }
+  .template-btn:active { transform: translateY(1px); }
+  .template-btn .tpl-time {
+    font-weight: 600;
+    opacity: 0.85;
+    font-variant-numeric: tabular-nums;
+    font-size: 10px;
+  }
+
+  .event-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .event-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid var(--ev-color, #5b8def);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .event-item .ev-time {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--text-main);
+    min-width: 80px;
+  }
+  .event-item .ev-label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-main);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .event-item .ev-actions { display: flex; gap: 4px; }
+  .event-item .ev-actions button {
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+  .event-item .ev-actions button.delete { color: #c0392b; border-color: #f5c6c0; }
+  .empty-events {
+    text-align: center;
+    color: var(--text-faint);
+    font-style: italic;
+    font-size: 12px;
+    padding: 10px 0;
+  }
+
+  .form-section {
+    background: white;
+    border-radius: 10px;
+    padding: 11px;
+    border: 1px solid var(--border-light);
+  }
+  .form-section h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    margin-bottom: 9px;
+    color: var(--text-main);
+  }
+  .form-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .form-row label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    min-width: 55px;
+  }
+  .form-row input[type="time"],
+  .form-row input[type="text"] {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--border-input);
+    border-radius: 7px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg-cell);
+    min-width: 0;
+  }
+  .form-row input[type="text"]:focus,
+  .form-row input[type="time"]:focus {
+    outline: none;
+    border-color: #5b8def;
+    background: white;
+  }
+  .color-picker {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform 0.1s;
+  }
+  .color-swatch.selected {
+    border-color: var(--text-main);
+    transform: scale(1.1);
+  }
+  .btn-add {
+    width: 100%;
+    background: var(--header-bg);
+    color: var(--header-text);
+    border: none;
+    padding: 11px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 4px;
+  }
+  .btn-add:active { background: #2a2a4e; }
+  .btn-paint-from-here {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 8px;
+  }
+
+  /* Template editor */
+  .tpl-editor-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .tpl-editor-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid var(--tpl-color, #5b8def);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .tpl-editor-item .tpl-info { flex: 1; overflow: hidden; }
+  .tpl-editor-item .tpl-label {
+    font-weight: 700;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tpl-editor-item .tpl-meta {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+  .tpl-editor-item .tpl-actions { display: flex; gap: 4px; }
+  .tpl-editor-item .tpl-actions button {
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+  .tpl-editor-item .tpl-actions button.delete { color: #c0392b; border-color: #f5c6c0; }
+
+  /* Backup menu */
+  .backup-menu {
+    position: fixed;
+    top: 48px;
+    right: 12px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    padding: 6px;
+    z-index: 50;
+    display: none;
+    min-width: 210px;
+  }
+  .backup-menu.show { display: block; }
+  .backup-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--text-main);
+    cursor: pointer;
+    border-radius: 6px;
+    font-family: inherit;
+  }
+  .backup-menu button:active { background: #f4f1ec; }
+  .backup-menu .separator {
+    height: 1px;
+    background: #e0d8c5;
+    margin: 4px 8px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--header-bg);
+    color: var(--header-text);
+    padding: 10px 18px;
+    border-radius: 22px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.25s;
+    z-index: 200;
+    pointer-events: none;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  }
+  .toast.show { opacity: 1; }
+
+  .confirm-text {
+    padding: 8px 4px 14px;
+    font-size: 14px;
+    color: var(--text-main);
+    line-height: 1.5;
+  }
+  .confirm-actions { display: flex; gap: 8px; }
+  .confirm-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .confirm-actions .btn-cancel { background: #e0d8c5; color: var(--text-main); }
+  .confirm-actions .btn-confirm { background: #c0392b; color: white; }
+
+  .info-tip {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: #f4f1ec;
+    padding: 7px 10px;
+    border-radius: 7px;
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .info-tip strong { color: var(--text-main); }
+
+  @media (orientation: portrait) {
+    .event { font-size: 9px; }
+    .day-number { font-size: 12px; }
+  }
+
+  /* ====== MENU VIEW (2ème page, accessible par swipe up) ====== */
+  .menu-view {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-main);
+    color: var(--text-main);
+    z-index: 90;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .menu-view.show { display: flex; }
+  .menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--header-bg);
+    color: var(--header-text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    flex-shrink: 0;
+  }
+  .menu-header h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 17px;
+  }
+  .menu-back-btn {
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: var(--header-text);
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .menu-grid {
+    flex: 1;
+    display: grid;
+    /* 6 colonnes : Date | Horaire | Menu | Date | Horaire | Menu */
+    /* minmax(0, …) : permet aux cellules de descendre en-dessous de la taille
+       intrinsèque de leur contenu (sinon une pastille en nowrap force la
+       colonne à grossir et écrase les autres). */
+    grid-template-columns:
+      minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.4fr)
+      minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.4fr);
+    overflow-y: auto;
+    background: var(--border);
+    gap: 1px;
+    grid-auto-rows: min-content;
+  }
+  .menu-cell {
+    background: var(--bg-cell);
+    padding: 6px 6px;
+    font-size: 12px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    word-break: break-word;
+    min-width: 0; /* permet aux enfants en nowrap d'être tronqués au lieu d'étirer la colonne */
+  }
+  .menu-cell.menu-header-cell {
+    background: var(--bg-weekday);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-muted);
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 6px 2px;
+    text-align: center;
+  }
+  .menu-cell.date-cell {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 13px;
+    justify-content: center;
+    color: var(--text-main);
+  }
+  .menu-cell.date-cell.weekend { color: var(--text-weekend); }
+  .menu-cell.date-cell.off { background: var(--bg-cell-off); }
+  .menu-cell.date-cell.empty {
+    background: var(--bg-cell-other);
+    color: transparent;
+  }
+  .menu-cell.horaire-cell, .menu-cell.text-cell {
+    cursor: text;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    padding: 4px 5px;
+  }
+  .menu-cell.horaire-cell.empty-row, .menu-cell.text-cell.empty-row {
+    background: var(--bg-cell-other);
+    pointer-events: none;
+  }
+  .menu-cell .horaire-tag {
+    background: var(--ev-color, #5b8def);
+    color: var(--ev-text, white);
+    border-radius: 3px;
+    padding: 2px 5px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    display: inline-block;
+    width: fit-content;
+  }
+  /* Tag Nuit : positionné à cheval sur la frontière BAS de la cellule
+     (donc visuellement entre la ligne du jour de départ et la ligne du jour suivant) */
+  .menu-cell.has-overnight {
+    overflow: visible !important;
+    position: relative;
+    /* PAS de z-index ici : il créerait un stacking context isolé par cellule,
+       et la pastille débordante d'une cellule serait masquée par la cellule
+       suivante dans le DOM lors de nuits consécutives. */
+  }
+  .menu-cell .horaire-tag.horaire-tag-overnight {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translate(-50%, 50%);
+    z-index: 5;
+    /* Forme « pastille » plus douce, à cheval sur la frontière */
+    border-radius: 999px;
+    padding: 2px 10px 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    line-height: 1.1;
+    /* Halo doux + ombre portée pour donner du relief sans alourdir */
+    box-shadow:
+      0 0 0 2px var(--bg-cell),
+      0 1px 2px rgba(0,0,0,0.18),
+      0 2px 6px rgba(0,0,0,0.12);
+    /* Garantit que la pastille reste cliquable / visible au-dessus du
+       fond de la cellule du jour suivant */
+    pointer-events: auto;
+    white-space: nowrap;
+  }
+  /* Petit croissant de lune en préfixe — discret, dans la couleur du tag */
+  .menu-cell .horaire-tag.horaire-tag-overnight::before {
+    content: '🌙';
+    margin-right: 4px;
+    font-size: 9px;
+    filter: grayscale(0.2) brightness(1.1);
+    vertical-align: -1px;
+  }
+  .menu-cell .menu-textarea {
+    width: 100%;
+    height: 100%;
+    min-height: 28px;
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 12px;
+    resize: none;
+    outline: none;
+    padding: 0;
+    line-height: 1.3;
+  }
+  .menu-cell .menu-textarea:focus {
+    background: var(--bg-input);
+    border-radius: 4px;
+  }
+  .menu-cell .horaire-edit-area {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    min-height: 24px;
+  }
+  .menu-cell .horaire-add-btn {
+    background: transparent;
+    border: 1px dashed var(--border-input);
+    color: var(--text-faint);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  /* Swipe hint */
+  .swipe-hint {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: var(--text-faint);
+    pointer-events: none;
+    opacity: 0.6;
+    z-index: 5;
+  }
+
+  /* Modal pour choisir un raccourci horaire dans la vue menu */
+  .horaire-picker-modal .modal { max-width: 400px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="month-nav">
+    <button id="prevMonth" aria-label="Mois précédent">‹</button>
+    <div class="month-title" id="monthTitle">—</div>
+    <button id="nextMonth" aria-label="Mois suivant">›</button>
+  </div>
+  <div class="header-actions">
+    <button id="paintBtn" title="Mode peinture">🎨</button>
+    <button id="eraseBtn" title="Mode gomme">🧽</button>
+    <button id="todayBtn">Auj.</button>
+    <button id="menuBtn">⋮</button>
+  </div>
+</header>
+
+<div class="paint-bar" id="paintBar">
+  <span class="paint-label">🎨</span>
+  <div class="paint-templates" id="paintTemplates"></div>
+  <button class="paint-exit" id="paintExit">Quitter</button>
+</div>
+
+<div class="erase-bar" id="eraseBar">
+  <span class="erase-info">🧽 Mode gomme — tap sur un événement pour le supprimer</span>
+  <button class="erase-exit" id="eraseExit">Quitter</button>
+</div>
+
+<div class="backup-menu" id="backupMenu">
+  <button id="darkModeBtn">🌙 Mode sombre</button>
+  <div class="separator"></div>
+  <button id="manageTplBtn">⭐ Gérer les raccourcis</button>
+  <div class="separator"></div>
+  <button id="exportBtn">📤 Exporter sauvegarde</button>
+  <button id="importBtn">📥 Importer sauvegarde</button>
+  <div class="separator"></div>
+  <button id="clearBtn">🗑️ Tout effacer</button>
+  <input type="file" id="importFile" accept=".json" style="display:none">
+</div>
+
+<div class="weekday-row">
+  <div>Lun</div><div>Mar</div><div>Mer</div><div>Jeu</div><div>Ven</div>
+  <div class="weekend">Sam</div><div class="weekend">Dim</div>
+</div>
+
+<div class="calendar" id="calendar"></div>
+<div class="swipe-hint" id="swipeHint">↑ Glisser vers le haut : Menu du mois</div>
+
+<!-- Vue Menu du mois -->
+<div class="menu-view" id="menuView">
+  <div class="menu-header">
+    <button class="menu-back-btn" id="menuBackBtn">‹ Retour</button>
+    <h2 id="menuTitle">Menu — Mai 2026</h2>
+    <button class="menu-back-btn" id="menuExportBtn" style="visibility:hidden;">·</button>
+  </div>
+  <div class="menu-grid" id="menuGrid"></div>
+</div>
+
+<!-- Modal pour choisir un horaire (raccourci) -->
+<div class="modal-backdrop horaire-picker-modal" id="horairePickerModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="horairePickerTitle">Choisir un horaire</h2>
+      <button class="modal-close" id="horairePickerClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="templates-grid" id="horairePickerGrid" style="margin-bottom:12px;"></div>
+      <button class="btn-add" id="horaireRemoveBtn" style="background:transparent;color:var(--text-muted);border:1px solid var(--border-input);">Retirer l'horaire de ce jour</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Menu du jour (appui long) -->
+<div class="modal-backdrop" id="dayMenuModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="dayMenuTitle">Menu du jour</h2>
+      <button class="modal-close" id="dayMenuClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section">
+        <h3>Horaire</h3>
+        <div class="templates-grid" id="dayMenuHoraireGrid" style="margin-bottom:8px;"></div>
+        <div id="dayMenuCurrentHoraire" style="font-size:12px;color:var(--text-muted);margin-bottom:4px;"></div>
+      </div>
+      <div class="form-section" style="margin-top:10px;">
+        <h3>Menu (texte libre)</h3>
+        <textarea id="dayMenuText" class="menu-textarea" style="min-height:80px;background:var(--bg-input);border:1px solid var(--border-input);border-radius:7px;padding:8px;font-size:14px;" placeholder="ex: Poulet rôti, salade, tarte aux pommes..."></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal jour -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Date</h2>
+      <button class="modal-close" id="modalClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="templates-section" id="templatesSection">
+        <div class="templates-header">⚡ Raccourcis (tap = ajouter)</div>
+        <div class="templates-grid" id="templatesGrid"></div>
+        <button class="btn-paint-from-here" id="paintFromHereBtn">🎨 Activer le mode peinture pour remplir plusieurs jours</button>
+      </div>
+
+      <div class="event-list" id="eventList"></div>
+
+      <div class="form-section">
+        <h3 id="formTitle">Ajouter manuellement</h3>
+        <div class="form-row">
+          <label>Début</label>
+          <input type="time" id="evStart">
+          <label style="min-width:auto;">Fin</label>
+          <input type="time" id="evEnd">
+        </div>
+        <div class="form-row">
+          <label>Libellé</label>
+          <input type="text" id="evLabel" placeholder="ex: Maman - travail">
+        </div>
+        <div class="form-row">
+          <label>Couleur</label>
+          <div class="color-picker" id="colorPicker"></div>
+        </div>
+        <button class="btn-add" id="addEventBtn">Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal gestion raccourcis -->
+<div class="modal-backdrop" id="tplModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>⭐ Gérer les raccourcis</h2>
+      <button class="modal-close" id="tplModalClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-tip">
+        <strong>Comment ça marche :</strong> chaque raccourci enregistre un libellé, une couleur et (optionnel) des horaires. Tap dessus dans un jour pour l'ajouter instantanément.
+      </div>
+
+      <div class="tpl-editor-list" id="tplEditorList"></div>
+
+      <div class="form-section">
+        <h3 id="tplFormTitle">Nouveau raccourci</h3>
+        <div class="form-row">
+          <label>Libellé</label>
+          <input type="text" id="tplLabel" placeholder="ex: J1, Cardio, Nuit...">
+        </div>
+        <div class="form-row">
+          <label>Début</label>
+          <input type="time" id="tplStart">
+          <label style="min-width:auto;">Fin</label>
+          <input type="time" id="tplEnd">
+        </div>
+        <div class="form-row" style="font-size:11px;color:#8a8270;margin-top:-4px;">
+          <span style="margin-left:55px;">(Horaires optionnels)</span>
+        </div>
+        <div class="form-row">
+          <label style="min-width:55px;">À cheval</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#1a1a2e;cursor:pointer;font-weight:normal;min-width:auto;flex:1;">
+            <input type="checkbox" id="tplOvernight" style="width:18px;height:18px;cursor:pointer;">
+            <span>Événement de nuit (affiché sur 2 jours)</span>
+          </label>
+        </div>
+        <div class="form-row">
+          <label>Couleur</label>
+          <div class="color-picker" id="tplColorPicker"></div>
+        </div>
+        <button class="btn-add" id="saveTplBtn">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal" style="max-width: 360px;">
+    <div class="modal-header"><h2>Confirmation</h2></div>
+    <div class="modal-body">
+      <div class="confirm-text" id="confirmText"></div>
+      <div class="confirm-actions">
+        <button class="btn-cancel" id="confirmCancel">Annuler</button>
+        <button class="btn-confirm" id="confirmOk">Confirmer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== STATE ======
+const STORAGE_KEY = 'family-planning-v4';
+
+const COLORS = [
+  // Violets / mauves (3)
+  '#6b4d9e', '#9b7bc4', '#c5a8e0',
+  // Bleus (3)
+  '#1e3a6f', '#2a4a7f', '#5b8def',
+  // Cyans / turquoises (2)
+  '#0e7c8a', '#5ab8b0',
+  // Verts (3)
+  '#1f6b3a', '#3e8e5a', '#7eb86b',
+  // Jaunes / ocres (2)
+  '#d4a017', '#f0b94a',
+  // Oranges (2)
+  '#d35400', '#e8745c',
+  // Rouges / roses (3)
+  '#8e1f15', '#c0392b', '#e57399',
+  // Bruns (2)
+  '#6b3410', '#a3502c',
+  // Gris (2)
+  '#4a4a4a', '#8a8270',
+  // Noir (1)
+  '#1a1a1a',
+];
+
+function textColorFor(bg) {
+  const c = bg.replace('#', '');
+  const r = parseInt(c.substring(0,2), 16);
+  const g = parseInt(c.substring(2,4), 16);
+  const b = parseInt(c.substring(4,6), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.62 ? '#1a1a2e' : '#ffffff';
+}
+
+// Raccourcis par défaut : libellé + couleur uniquement, sans horaire pré-rempli.
+// L'utilisateur peut éditer chaque raccourci pour y mettre des heures s'il le souhaite.
+const DEFAULT_TEMPLATES = [
+  { id: 't1', label: 'J1',      start: '', end: '', color: '#6b4d9e' },
+  { id: 't2', label: 'J2',      start: '', end: '', color: '#9b7bc4' },
+  { id: 't3', label: 'J5',      start: '', end: '', color: '#c5a8e0' },
+  { id: 't4', label: 'Cardio',  start: '', end: '', color: '#3e8e5a' },
+  { id: 't5', label: 'Pilates', start: '', end: '', color: '#7eb86b' },
+  { id: 't6', label: 'Danse',   start: '', end: '', color: '#e8745c' },
+  { id: 't7', label: 'Jour',    start: '', end: '', color: '#5b8def' },
+  { id: 't8', label: 'Nuit',    start: '', end: '', color: '#2a4a7f', overnight: true },
+];
+// Labels des raccourcis « système » — utilisés pour les migrations.
+const DEFAULT_PRESET_LABELS = DEFAULT_TEMPLATES.map(t => t.label);
+
+let state = {
+  events: {},
+  templates: DEFAULT_TEMPLATES.slice(),
+  menus: {}, // { 'YYYY-MM-DD': { horaire: {label, color, start, end} | null, text: '...' } }
+};
+
+let currentMonth = new Date();
+currentMonth.setDate(1);
+let selectedDate = null;
+let editingEventId = null;
+let editingTemplateId = null;
+let selectedColor = COLORS[0];
+let selectedTplColor = COLORS[0];
+
+// Mode peinture
+let paintMode = false;
+let paintTemplate = null;
+
+// Mode gomme
+let eraseMode = false;
+
+// ====== JOURS FÉRIÉS ======
+function getEasterDate(year) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+function getFrenchHolidays(year) {
+  const easter = getEasterDate(year);
+  return new Set([
+    formatDateKey(new Date(year, 0, 1)),
+    formatDateKey(addDays(easter, 1)),
+    formatDateKey(new Date(year, 4, 1)),
+    formatDateKey(new Date(year, 4, 8)),
+    formatDateKey(addDays(easter, 39)),
+    formatDateKey(addDays(easter, 50)),
+    formatDateKey(new Date(year, 6, 14)),
+    formatDateKey(new Date(year, 7, 15)),
+    formatDateKey(new Date(year, 10, 1)),
+    formatDateKey(new Date(year, 10, 11)),
+    formatDateKey(new Date(year, 11, 25)),
+  ]);
+}
+
+// ====== VACANCES ZONE A ======
+const SCHOOL_VACATIONS = [
+  { start: '2024-10-19', end: '2024-11-04' },
+  { start: '2024-12-21', end: '2025-01-06' },
+  { start: '2025-02-22', end: '2025-03-10' },
+  { start: '2025-04-19', end: '2025-05-05' },
+  { start: '2025-05-28', end: '2025-06-02' },
+  { start: '2025-07-05', end: '2025-09-01' },
+  { start: '2025-10-18', end: '2025-11-03' },
+  { start: '2025-12-20', end: '2026-01-05' },
+  { start: '2026-02-07', end: '2026-02-23' },
+  { start: '2026-04-04', end: '2026-04-20' },
+  { start: '2026-05-13', end: '2026-05-18' },
+  { start: '2026-07-04', end: '2026-09-01' },
+  { start: '2026-10-17', end: '2026-11-02' },
+  { start: '2026-12-19', end: '2027-01-04' },
+];
+function isVacation(dateKey) {
+  for (const v of SCHOOL_VACATIONS) {
+    if (dateKey >= v.start && dateKey < v.end) return true;
+  }
+  return false;
+}
+
+// ====== STORAGE ======
+function saveState() {
+  try {
+    const data = JSON.stringify(state);
+    localStorage.setItem(STORAGE_KEY, data);
+    localStorage.setItem(STORAGE_KEY + '-backup', data);
+  } catch (e) {
+    showToast('⚠️ Erreur de sauvegarde');
+    console.error(e);
+  }
+}
+function loadState() {
+  try {
+    let data = localStorage.getItem(STORAGE_KEY);
+    if (!data) data = localStorage.getItem(STORAGE_KEY + '-backup');
+    if (data) {
+      const parsed = JSON.parse(data);
+      if (parsed && parsed.events) {
+        state.events = parsed.events || {};
+        state.templates = parsed.templates && parsed.templates.length
+          ? parsed.templates
+          : DEFAULT_TEMPLATES.slice();
+        state.menus = parsed.menus || {};
+      }
+      // Migration unique :
+      //  1) Réinjecte les raccourcis par défaut manquants (les libellés/couleurs
+      //     sont restaurés même si une version précédente les avait retirés).
+      //  2) Retire les horaires (start/end) pré-remplis des raccourcis système :
+      //     le bouton-raccourci reste, mais aucune heure n'est assignée par
+      //     défaut. L'utilisateur peut toujours éditer chaque raccourci pour
+      //     y remettre des heures s'il le souhaite.
+      //  Les événements déjà placés sur le calendrier ne sont PAS modifiés —
+      //  ils embarquent leur propre label/couleur/horaires.
+      if (!localStorage.getItem(STORAGE_KEY + '-presets-untimed')) {
+        const existingLabels = new Set(state.templates.map(t => t.label));
+        DEFAULT_TEMPLATES.forEach(def => {
+          if (!existingLabels.has(def.label)) {
+            state.templates.push({ ...def, id: uid() });
+          }
+        });
+        state.templates.forEach(t => {
+          if (DEFAULT_PRESET_LABELS.includes(t.label)) {
+            t.start = '';
+            t.end = '';
+          }
+        });
+        localStorage.setItem(STORAGE_KEY + '-presets-untimed', '1');
+        saveState();
+      }
+      return;
+    }
+    // Migration depuis v3 / v2 / v1
+    for (const oldKey of ['family-planning-v3', 'family-planning-v2', 'family-planning-v1']) {
+      const oldData = localStorage.getItem(oldKey);
+      if (oldData) {
+        const parsed = JSON.parse(oldData);
+        if (parsed && parsed.events) {
+          state.events = parsed.events;
+          if (parsed.templates && parsed.templates.length) {
+            state.templates = parsed.templates;
+            // Réinjecte les raccourcis par défaut absents et retire les horaires
+            // pré-remplis des raccourcis système (cf. migration principale).
+            const existingLabels = new Set(state.templates.map(t => t.label));
+            DEFAULT_TEMPLATES.forEach(def => {
+              if (!existingLabels.has(def.label)) {
+                state.templates.push({ ...def, id: uid() });
+              }
+            });
+            state.templates.forEach(t => {
+              if (DEFAULT_PRESET_LABELS.includes(t.label)) {
+                t.start = '';
+                t.end = '';
+              }
+              if (t.label.toLowerCase() === 'nuit' && t.overnight === undefined) {
+                t.overnight = true;
+              }
+            });
+            localStorage.setItem(STORAGE_KEY + '-presets-untimed', '1');
+          }
+          showToast('Données précédentes récupérées');
+          saveState();
+          return;
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Load error:', e);
+  }
+}
+
+// ====== UTILS ======
+function formatDateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+const MONTH_NAMES = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const FULL_DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+// ====== RENDER CALENDAR ======
+function renderCalendar() {
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  document.getElementById('monthTitle').textContent = `${MONTH_NAMES[month]} ${year}`;
+
+  const firstDay = new Date(year, month, 1);
+  let startWeekday = firstDay.getDay();
+  startWeekday = (startWeekday === 0) ? 6 : startWeekday - 1;
+
+  const lastDay = new Date(year, month + 1, 0).getDate();
+
+  const cells = [];
+  const prevLast = new Date(year, month, 0).getDate();
+  for (let i = startWeekday - 1; i >= 0; i--) {
+    cells.push({ date: new Date(year, month - 1, prevLast - i), otherMonth: true });
+  }
+  for (let d = 1; d <= lastDay; d++) {
+    cells.push({ date: new Date(year, month, d), otherMonth: false });
+  }
+  while (cells.length < 42) {
+    const offset = cells.length - (startWeekday + lastDay) + 1;
+    cells.push({ date: new Date(year, month + 1, offset), otherMonth: true });
+  }
+
+  const calendar = document.getElementById('calendar');
+  calendar.innerHTML = '';
+  const today = new Date();
+  const todayKey = formatDateKey(today);
+
+  const yearsToCheck = [...new Set(cells.map(c => c.date.getFullYear()))];
+  const holidays = new Set();
+  yearsToCheck.forEach(y => getFrenchHolidays(y).forEach(k => holidays.add(k)));
+
+  cells.forEach(({ date, otherMonth }) => {
+    const dayEl = document.createElement('div');
+    dayEl.className = 'day';
+    const key = formatDateKey(date);
+    const weekday = date.getDay();
+    if (otherMonth) dayEl.classList.add('other-month');
+    if (weekday === 0 || weekday === 6) dayEl.classList.add('weekend');
+
+    const isHoliday = holidays.has(key);
+    const isVac = isVacation(key);
+
+    // Vacances ET jours fériés = MÊME fond
+    if (isHoliday || isVac) dayEl.classList.add('off');
+
+    if (key === todayKey) dayEl.classList.add('today');
+
+    const num = document.createElement('div');
+    num.className = 'day-number';
+    const numText = document.createElement('span');
+    numText.textContent = date.getDate();
+    num.appendChild(numText);
+    // Pastille rouge UNIQUEMENT pour les jours fériés (pas de texte)
+    if (isHoliday) {
+      const dot = document.createElement('span');
+      dot.className = 'holiday-dot';
+      dot.title = 'Jour férié';
+      num.appendChild(dot);
+    }
+    dayEl.appendChild(num);
+
+    const evs = document.createElement('div');
+    evs.className = 'events';
+    if (eraseMode) dayEl.classList.add('erase-mode');
+    const events = (state.events[key] || []).slice().sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+    // Marquer la cellule si elle contient un événement "à cheval" (right ou left)
+    if (events.some(ev => ev.span)) dayEl.classList.add('has-span');
+    events.forEach(ev => {
+      const e = document.createElement('div');
+      e.className = 'event';
+      if (ev.span === 'right') e.classList.add('span-right');
+      else if (ev.span === 'left') e.classList.add('span-left');
+      e.style.setProperty('--ev-color', ev.color);
+      e.style.setProperty('--ev-text', textColorFor(ev.color));
+      // Pour les moitiés, n'afficher que le libellé (plus de place pour les horaires)
+      let timeStr = ev.start ? (ev.end ? `${ev.start}-${ev.end}` : ev.start) : '';
+      if (ev.span) timeStr = ''; // pas d'horaire sur les moitiés
+      e.innerHTML = `${timeStr ? `<span class="time">${timeStr}</span>` : ''}<span class="label">${escapeHtml(ev.label || '')}</span>`;
+      // En mode gomme : un tap sur l'event le supprime directement
+      if (eraseMode) {
+        e.addEventListener('click', (clickEvt) => {
+          clickEvt.stopPropagation();
+          eraseEventById(ev.id, key);
+        });
+      }
+      evs.appendChild(e);
+    });
+    dayEl.appendChild(evs);
+
+    // Long press : ouvre directement le modal menu pour ce jour
+    let pressTimer = null;
+    let pressedDuringTimer = false;
+    dayEl.addEventListener('touchstart', () => {
+      pressedDuringTimer = false;
+      pressTimer = setTimeout(() => {
+        pressedDuringTimer = true;
+        if (navigator.vibrate) navigator.vibrate(30);
+        openDayMenuModal(date);
+      }, 500);
+    }, { passive: true });
+    dayEl.addEventListener('touchend', () => {
+      if (pressTimer) clearTimeout(pressTimer);
+    });
+    dayEl.addEventListener('touchmove', () => {
+      if (pressTimer) clearTimeout(pressTimer);
+    }, { passive: true });
+
+    // Clic droit (sur ordi) = équivalent appui long
+    dayEl.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (!eraseMode && !paintMode) openDayMenuModal(date);
+    });
+
+    dayEl.addEventListener('click', () => {
+      if (pressedDuringTimer) return; // un long press a déjà fait son boulot
+      if (eraseMode) return;
+      if (paintMode && paintTemplate && !otherMonth) {
+        applyTemplateToDate(paintTemplate, date);
+        dayEl.classList.add('paint-flash');
+        setTimeout(() => dayEl.classList.remove('paint-flash'), 400);
+      } else {
+        openModal(date);
+      }
+    });
+    calendar.appendChild(dayEl);
+  });
+}
+
+// ====== DAY MENU MODAL (long press) ======
+let dayMenuCurrentDate = null;
+
+function openDayMenuModal(date) {
+  dayMenuCurrentDate = date;
+  const key = formatDateKey(date);
+  const menuData = state.menus[key] || {};
+  document.getElementById('dayMenuTitle').textContent =
+    `Menu — ${FULL_DAYS[date.getDay()]} ${date.getDate()} ${MONTH_NAMES[date.getMonth()].toLowerCase()}`;
+
+  // Render raccourcis horaires de travail (ajout)
+  const grid = document.getElementById('dayMenuHoraireGrid');
+  grid.innerHTML = '';
+  const workTemplates = state.templates.filter(t => WORK_HOUR_LABELS.includes(t.label));
+  workTemplates.forEach(tpl => {
+    const btn = document.createElement('button');
+    btn.className = 'template-btn';
+    btn.style.setProperty('--tpl-color', tpl.color);
+    btn.style.setProperty('--tpl-text', textColorFor(tpl.color));
+    let timeStr = '';
+    if (tpl.start) timeStr = tpl.end ? `${tpl.start}-${tpl.end}` : tpl.start;
+    btn.innerHTML = `<span>${escapeHtml(tpl.label)}</span>${timeStr ? `<span class="tpl-time">${timeStr}</span>` : ''}`;
+    btn.addEventListener('click', () => {
+      applyTemplateToDate(tpl, date);
+      updateDayMenuCurrentHoraire(key);
+      renderCalendar();
+    });
+    grid.appendChild(btn);
+  });
+
+  updateDayMenuCurrentHoraire(key);
+
+  // Textarea
+  const ta = document.getElementById('dayMenuText');
+  ta.value = menuData.text || '';
+  ta.oninput = () => {
+    if (!state.menus[key]) state.menus[key] = {};
+    state.menus[key].text = ta.value;
+    if (!state.menus[key].text) {
+      delete state.menus[key];
+    }
+    saveState();
+  };
+
+  document.getElementById('dayMenuModal').classList.add('show');
+}
+
+function updateDayMenuCurrentHoraire(key) {
+  const elem = document.getElementById('dayMenuCurrentHoraire');
+  // Récupère tous les horaires de travail du jour depuis les events
+  const events = (state.events[key] || []).filter(ev => isWorkHour(ev) && ev.span !== 'left');
+  if (events.length === 0) {
+    elem.innerHTML = '<em style="opacity:0.6;">Aucun horaire — tap un raccourci ci-dessus</em>';
+    return;
+  }
+  elem.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;">';
+  let html = '<span style="font-size:11px;color:var(--text-muted);margin-right:4px;">Horaires :</span>';
+  events.forEach(ev => {
+    let timeStr = ev.start ? (ev.end ? `${ev.start}-${ev.end}` : ev.start) : '';
+    const txtColor = textColorFor(ev.color);
+    html += `<span class="day-menu-horaire-tag" data-ev-id="${ev.id}" style="background:${ev.color};color:${txtColor};padding:3px 7px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">${escapeHtml(ev.label)}${timeStr ? ' '+timeStr : ''} <span style="opacity:0.7;font-weight:normal;">×</span></span>`;
+  });
+  elem.innerHTML = html;
+  // Click pour retirer
+  elem.querySelectorAll('.day-menu-horaire-tag').forEach(tag => {
+    tag.addEventListener('click', () => {
+      const id = tag.dataset.evId;
+      const ev = (state.events[key] || []).find(e => e.id === id);
+      if (!ev) return;
+      removeWorkHourFromDate(ev, key);
+      updateDayMenuCurrentHoraire(key);
+    });
+  });
+}
+
+function closeDayMenuModal() {
+  document.getElementById('dayMenuModal').classList.remove('show');
+  dayMenuCurrentDate = null;
+}
+// ====== END DAY MENU MODAL ======
+
+// Labels des raccourcis qui sont des HORAIRES DE TRAVAIL,
+// synchronisés entre la vue calendrier et la vue menu.
+const WORK_HOUR_LABELS = ['J1', 'J2', 'J5', 'Jour', 'Nuit'];
+function isWorkHour(ev) {
+  return ev && WORK_HOUR_LABELS.includes(ev.label);
+}
+
+// ====== MENU VIEW ======
+const DAY_INITIALS = ['D', 'L', 'M', 'M', 'J', 'V', 'S']; // dim, lun, mar, mer, jeu, ven, sam
+let menuEditingDate = null; // date en cours d'édition d'horaire
+
+function openMenuView() {
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  document.getElementById('menuTitle').textContent = `Menu — ${MONTH_NAMES[month]} ${year}`;
+  renderMenuGrid();
+  document.getElementById('menuView').classList.add('show');
+}
+function closeMenuView() {
+  document.getElementById('menuView').classList.remove('show');
+}
+
+function renderMenuGrid() {
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const grid = document.getElementById('menuGrid');
+  grid.innerHTML = '';
+
+  // En-têtes
+  ['Date', 'Horaire', 'Menu', 'Date', 'Horaire', 'Menu'].forEach(h => {
+    const c = document.createElement('div');
+    c.className = 'menu-cell menu-header-cell';
+    c.textContent = h;
+    grid.appendChild(c);
+  });
+
+  // Calcul du split : 1-15 dans col gauche, 16-31 dans col droite
+  // Toujours 16 lignes (pour mois plus courts on remplit avec des cases vides)
+  const ROWS = 16;
+  const holidays = getFrenchHolidays(year);
+
+  for (let row = 0; row < ROWS; row++) {
+    const leftDay = row + 1;   // 1 à 16
+    const rightDay = row + 16; // 16 à 31
+
+    // === COLONNES GAUCHES (1 au 15) ===
+    if (leftDay <= 15 && leftDay <= lastDay) {
+      renderMenuRow(grid, year, month, leftDay, holidays);
+    } else {
+      // Cases vides
+      for (let i = 0; i < 3; i++) {
+        const c = document.createElement('div');
+        c.className = 'menu-cell ' + (i === 0 ? 'date-cell empty' : (i === 1 ? 'horaire-cell empty-row' : 'text-cell empty-row'));
+        grid.appendChild(c);
+      }
+    }
+
+    // === COLONNES DROITES (16 au 31) ===
+    if (rightDay <= lastDay) {
+      renderMenuRow(grid, year, month, rightDay, holidays);
+    } else {
+      for (let i = 0; i < 3; i++) {
+        const c = document.createElement('div');
+        c.className = 'menu-cell ' + (i === 0 ? 'date-cell empty' : (i === 1 ? 'horaire-cell empty-row' : 'text-cell empty-row'));
+        grid.appendChild(c);
+      }
+    }
+  }
+}
+
+function renderMenuRow(grid, year, month, day, holidays) {
+  const date = new Date(year, month, day);
+  const key = formatDateKey(date);
+  const weekday = date.getDay();
+  const isHoliday = holidays.has(key);
+  const isVac = isVacation(key);
+  const menuData = state.menus[key] || {};
+
+  // Cellule Date
+  const dateCell = document.createElement('div');
+  dateCell.className = 'menu-cell date-cell';
+  if (weekday === 0 || weekday === 6) dateCell.classList.add('weekend');
+  if (isHoliday || isVac) dateCell.classList.add('off');
+  dateCell.textContent = `${DAY_INITIALS[weekday]} ${day}`;
+  grid.appendChild(dateCell);
+
+  // Cellule Horaire (lecture seule — synchronisée depuis le calendrier)
+  const horaireCell = document.createElement('div');
+  horaireCell.className = 'menu-cell horaire-cell';
+  horaireCell.dataset.dateKey = key;
+  renderHoraireCellContent(horaireCell, key);
+  grid.appendChild(horaireCell);
+
+  // Cellule Menu (texte libre)
+  const textCell = document.createElement('div');
+  textCell.className = 'menu-cell text-cell';
+  const textarea = document.createElement('textarea');
+  textarea.className = 'menu-textarea';
+  textarea.placeholder = '...';
+  textarea.value = menuData.text || '';
+  textarea.addEventListener('input', () => {
+    if (!state.menus[key]) state.menus[key] = {};
+    state.menus[key].text = textarea.value;
+    // Cleanup si tout est vide
+    if (!state.menus[key].text && !state.menus[key].horaire) {
+      delete state.menus[key];
+    }
+    saveState();
+  });
+  textCell.appendChild(textarea);
+  grid.appendChild(textCell);
+}
+
+function renderHoraireCellContent(cell, dateKey) {
+  cell.innerHTML = '';
+  const events = (state.events[dateKey] || []).filter(isWorkHour);
+  // Garder la moitié de départ uniquement (span-right ou pas de span)
+  const filtered = events.filter(ev => ev.span !== 'left');
+
+  if (filtered.length === 0) {
+    // Cellule vide — pas de bouton, juste vide
+    return;
+  }
+
+  filtered.forEach(ev => {
+    const tag = document.createElement('span');
+    tag.className = 'horaire-tag';
+    tag.style.setProperty('--ev-color', ev.color);
+    tag.style.setProperty('--ev-text', textColorFor(ev.color));
+    let timeStr = '';
+    if (ev.start) timeStr = ev.end ? `${ev.start}-${ev.end}` : ev.start;
+    // Si c'est une Nuit (span-right) → afficher SEULEMENT le label (pas les heures)
+    // pour ne pas dépasser la largeur de la cellule étroite
+    if (ev.span === 'right') {
+      tag.classList.add('horaire-tag-overnight');
+      cell.classList.add('has-overnight');
+      tag.textContent = ev.label;
+    } else {
+      tag.textContent = timeStr ? `${ev.label} ${timeStr}` : ev.label;
+    }
+    cell.appendChild(tag);
+  });
+}
+
+function removeWorkHourFromDate(ev, dateKey) {
+  // Si event "à cheval" (groupId), supprime les 2 moitiés
+  if (ev.groupId) {
+    for (const k of Object.keys(state.events)) {
+      state.events[k] = state.events[k].filter(e => e.groupId !== ev.groupId);
+      if (state.events[k].length === 0) delete state.events[k];
+    }
+  } else {
+    state.events[dateKey] = (state.events[dateKey] || []).filter(e => e.id !== ev.id);
+    if (state.events[dateKey].length === 0) delete state.events[dateKey];
+  }
+  saveState();
+  // Refresh tout
+  renderCalendar();
+  if (document.getElementById('menuView').classList.contains('show')) {
+    renderMenuGrid();
+  }
+  showToast('Horaire retiré');
+}
+
+function openHorairePicker(dateKey) {
+  menuEditingDate = dateKey;
+  const grid = document.getElementById('horairePickerGrid');
+  grid.innerHTML = '';
+  // Filtrer pour ne montrer que les raccourcis "horaires de travail"
+  const workTemplates = state.templates.filter(t => WORK_HOUR_LABELS.includes(t.label));
+  if (workTemplates.length === 0) {
+    grid.innerHTML = '<span style="font-size:12px;color:var(--text-faint);">Aucun raccourci d\'horaire (J1, J2, J5, Jour, Nuit) configuré.</span>';
+  } else {
+    workTemplates.forEach(tpl => {
+      const btn = document.createElement('button');
+      btn.className = 'template-btn';
+      btn.style.setProperty('--tpl-color', tpl.color);
+      btn.style.setProperty('--tpl-text', textColorFor(tpl.color));
+      let timeStr = '';
+      if (tpl.start) timeStr = tpl.end ? `${tpl.start}-${tpl.end}` : tpl.start;
+      btn.innerHTML = `<span>${escapeHtml(tpl.label)}</span>${timeStr ? `<span class="tpl-time">${timeStr}</span>` : ''}`;
+      btn.addEventListener('click', () => {
+        // Crée un event dans le calendrier (synchro automatique avec la vue Menu)
+        const dateParts = dateKey.split('-').map(Number);
+        const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        applyTemplateToDate(tpl, date);
+        closeHorairePicker();
+        renderMenuGrid();
+        renderCalendar();
+      });
+      grid.appendChild(btn);
+    });
+  }
+  document.getElementById('horairePickerModal').classList.add('show');
+}
+function closeHorairePicker() {
+  document.getElementById('horairePickerModal').classList.remove('show');
+  menuEditingDate = null;
+}
+function refreshHoraireCell(dateKey) {
+  const cell = document.querySelector(`.horaire-cell[data-date-key="${dateKey}"]`);
+  if (cell) renderHoraireCellContent(cell, dateKey);
+}
+
+// ====== END MENU VIEW ======
+
+// ====== PAINT MODE ======
+function enterPaintMode(tpl = null) {
+  if (eraseMode) exitEraseMode();
+  paintMode = true;
+  if (tpl) paintTemplate = tpl;
+  else if (!paintTemplate && state.templates.length) paintTemplate = state.templates[0];
+  document.getElementById('paintBar').classList.add('show');
+  document.getElementById('paintBtn').classList.add('active-paint');
+  renderPaintTemplates();
+  if (paintTemplate) showToast(`🎨 Mode peinture : ${paintTemplate.label}`);
+}
+function exitPaintMode() {
+  paintMode = false;
+  paintTemplate = null;
+  document.getElementById('paintBar').classList.remove('show');
+  document.getElementById('paintBtn').classList.remove('active-paint');
+}
+
+// ====== ERASE MODE ======
+function enterEraseMode() {
+  if (paintMode) exitPaintMode();
+  eraseMode = true;
+  document.getElementById('eraseBar').classList.add('show');
+  document.getElementById('eraseBtn').classList.add('active-erase');
+  renderCalendar();
+  showToast('🧽 Tap sur un événement pour le supprimer');
+}
+function exitEraseMode() {
+  eraseMode = false;
+  document.getElementById('eraseBar').classList.remove('show');
+  document.getElementById('eraseBtn').classList.remove('active-erase');
+  renderCalendar();
+}
+function eraseEventById(id, key) {
+  if (!state.events[key]) return;
+  const ev = state.events[key].find(e => e.id === id);
+  if (!ev) return;
+  // Si événement "à cheval" (groupId), supprimer les deux moitiés
+  if (ev.groupId) {
+    for (const k of Object.keys(state.events)) {
+      state.events[k] = state.events[k].filter(e => e.groupId !== ev.groupId);
+      if (state.events[k].length === 0) delete state.events[k];
+    }
+  } else {
+    state.events[key] = state.events[key].filter(e => e.id !== id);
+    if (state.events[key].length === 0) delete state.events[key];
+  }
+  saveState();
+  renderCalendar();
+  showToast('✓ Supprimé');
+}
+function renderPaintTemplates() {
+  const c = document.getElementById('paintTemplates');
+  c.innerHTML = '';
+  state.templates.forEach(tpl => {
+    const btn = document.createElement('button');
+    btn.className = 'paint-tpl' + (paintTemplate && paintTemplate.id === tpl.id ? ' selected' : '');
+    btn.style.setProperty('--tpl-color', tpl.color);
+    btn.style.setProperty('--tpl-text', textColorFor(tpl.color));
+    btn.textContent = tpl.label;
+    btn.addEventListener('click', () => {
+      paintTemplate = tpl;
+      renderPaintTemplates();
+      showToast(`🎨 ${tpl.label}`);
+    });
+    c.appendChild(btn);
+  });
+}
+function applyTemplateToDate(tpl, date) {
+  const key = formatDateKey(date);
+  if (!state.events[key]) state.events[key] = [];
+  if (tpl.overnight) {
+    // Crée un événement "à cheval" : groupId commun pour le supprimer ensemble
+    const groupId = uid();
+    // Première moitié sur le jour de départ (aligné à droite)
+    state.events[key].push({
+      id: uid(),
+      groupId,
+      start: tpl.start || '',
+      end: tpl.end || '',
+      label: tpl.label,
+      color: tpl.color,
+      span: 'right', // moitié droite
+    });
+    // Deuxième moitié sur le jour suivant (aligné à gauche)
+    const nextDay = new Date(date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const nextKey = formatDateKey(nextDay);
+    if (!state.events[nextKey]) state.events[nextKey] = [];
+    state.events[nextKey].push({
+      id: uid(),
+      groupId,
+      start: tpl.start || '',
+      end: tpl.end || '',
+      label: tpl.label,
+      color: tpl.color,
+      span: 'left', // moitié gauche
+    });
+  } else {
+    state.events[key].push({
+      id: uid(),
+      start: tpl.start || '',
+      end: tpl.end || '',
+      label: tpl.label,
+      color: tpl.color,
+    });
+  }
+  saveState();
+  renderCalendar();
+}
+
+// ====== DAY MODAL ======
+function openModal(date) {
+  selectedDate = date;
+  editingEventId = null;
+  document.getElementById('modalTitle').textContent =
+    `${FULL_DAYS[date.getDay()]} ${date.getDate()} ${MONTH_NAMES[date.getMonth()].toLowerCase()}`;
+  renderTemplates();
+  renderEventList();
+  resetForm();
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  selectedDate = null;
+  editingEventId = null;
+}
+
+function renderTemplates() {
+  const grid = document.getElementById('templatesGrid');
+  grid.innerHTML = '';
+  if (!state.templates || state.templates.length === 0) {
+    grid.innerHTML = '<span style="font-size:11px;color:var(--text-faint);font-style:italic;">Aucun raccourci. Créez-en via ⋮ > Gérer les raccourcis.</span>';
+    return;
+  }
+  state.templates.forEach(tpl => {
+    const btn = document.createElement('button');
+    btn.className = 'template-btn';
+    btn.style.setProperty('--tpl-color', tpl.color);
+    btn.style.setProperty('--tpl-text', textColorFor(tpl.color));
+    let timeStr = '';
+    if (tpl.start) timeStr = tpl.end ? `${tpl.start}-${tpl.end}` : tpl.start;
+    btn.innerHTML = `<span>${escapeHtml(tpl.label)}</span>${timeStr ? `<span class="tpl-time">${timeStr}</span>` : ''}`;
+    btn.addEventListener('click', () => applyTemplateInModal(tpl));
+    grid.appendChild(btn);
+  });
+}
+function applyTemplateInModal(tpl) {
+  applyTemplateToDate(tpl, selectedDate);
+  renderEventList();
+  showToast(`✓ ${tpl.label} ajouté`);
+}
+
+function renderEventList() {
+  const key = formatDateKey(selectedDate);
+  const list = document.getElementById('eventList');
+  list.innerHTML = '';
+  const events = (state.events[key] || []).slice().sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+  if (events.length === 0) {
+    list.innerHTML = '<div class="empty-events">Aucun événement ce jour</div>';
+    return;
+  }
+  events.forEach(ev => {
+    const item = document.createElement('div');
+    item.className = 'event-item';
+    item.style.setProperty('--ev-color', ev.color);
+    const timeStr = ev.start ? (ev.end ? `${ev.start} – ${ev.end}` : ev.start) : '';
+    const overnightTag = ev.span === 'right' ? ' 🌙→' : (ev.span === 'left' ? ' →🌅' : '');
+    item.innerHTML = `
+      <div class="ev-time">${timeStr}${overnightTag}</div>
+      <div class="ev-label">${escapeHtml(ev.label || '')}</div>
+      <div class="ev-actions">
+        <button data-edit="${ev.id}">✎</button>
+        <button class="delete" data-del="${ev.id}">×</button>
+      </div>`;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('[data-edit]').forEach(b => {
+    b.addEventListener('click', () => startEdit(b.dataset.edit));
+  });
+  list.querySelectorAll('[data-del]').forEach(b => {
+    b.addEventListener('click', () => deleteEvent(b.dataset.del));
+  });
+}
+function resetForm() {
+  document.getElementById('evStart').value = '';
+  document.getElementById('evEnd').value = '';
+  document.getElementById('evLabel').value = '';
+  selectedColor = COLORS[0];
+  renderColorPicker();
+  document.getElementById('formTitle').textContent = 'Ajouter manuellement';
+  document.getElementById('addEventBtn').textContent = 'Ajouter';
+  editingEventId = null;
+}
+function renderColorPicker() {
+  const cp = document.getElementById('colorPicker');
+  cp.innerHTML = '';
+  COLORS.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (c === selectedColor ? ' selected' : '');
+    sw.style.background = c;
+    sw.addEventListener('click', () => {
+      selectedColor = c;
+      renderColorPicker();
+    });
+    cp.appendChild(sw);
+  });
+}
+function startEdit(id) {
+  const key = formatDateKey(selectedDate);
+  const ev = (state.events[key] || []).find(e => e.id === id);
+  if (!ev) return;
+  editingEventId = id;
+  document.getElementById('evStart').value = ev.start || '';
+  document.getElementById('evEnd').value = ev.end || '';
+  document.getElementById('evLabel').value = ev.label || '';
+  selectedColor = ev.color || COLORS[0];
+  renderColorPicker();
+  document.getElementById('formTitle').textContent = "Modifier l'événement";
+  document.getElementById('addEventBtn').textContent = 'Enregistrer';
+  document.getElementById('addEventBtn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function deleteEvent(id) {
+  const key = formatDateKey(selectedDate);
+  if (!state.events[key]) return;
+  const ev = state.events[key].find(e => e.id === id);
+  if (!ev) return;
+  showConfirm('Supprimer cet événement ?', () => {
+    // Si c'est un événement "à cheval", supprimer les deux moitiés
+    if (ev.groupId) {
+      for (const k of Object.keys(state.events)) {
+        state.events[k] = state.events[k].filter(e => e.groupId !== ev.groupId);
+        if (state.events[k].length === 0) delete state.events[k];
+      }
+    } else {
+      state.events[key] = state.events[key].filter(e => e.id !== id);
+      if (state.events[key].length === 0) delete state.events[key];
+    }
+    saveState();
+    renderEventList();
+    renderCalendar();
+    showToast('Événement supprimé');
+  });
+}
+function saveEvent() {
+  const start = document.getElementById('evStart').value;
+  const end = document.getElementById('evEnd').value;
+  const label = document.getElementById('evLabel').value.trim();
+  if (!label && !start) {
+    showToast('Saisir au moins un horaire ou un libellé');
+    return;
+  }
+  const key = formatDateKey(selectedDate);
+  if (!state.events[key]) state.events[key] = [];
+  if (editingEventId) {
+    const ev = state.events[key].find(e => e.id === editingEventId);
+    if (ev) { ev.start = start; ev.end = end; ev.label = label; ev.color = selectedColor; }
+  } else {
+    state.events[key].push({ id: uid(), start, end, label, color: selectedColor });
+  }
+  saveState();
+  renderEventList();
+  renderCalendar();
+  resetForm();
+  showToast(editingEventId ? 'Modifié' : 'Ajouté');
+}
+
+// ====== TEMPLATE EDITOR ======
+function openTplModal() {
+  editingTemplateId = null;
+  resetTplForm();
+  renderTplEditor();
+  document.getElementById('tplModal').classList.add('show');
+}
+function closeTplModal() {
+  document.getElementById('tplModal').classList.remove('show');
+  editingTemplateId = null;
+}
+function renderTplEditor() {
+  const list = document.getElementById('tplEditorList');
+  list.innerHTML = '';
+  if (!state.templates || state.templates.length === 0) {
+    list.innerHTML = '<div class="empty-events">Aucun raccourci.</div>';
+    return;
+  }
+  state.templates.forEach(tpl => {
+    const item = document.createElement('div');
+    item.className = 'tpl-editor-item';
+    item.style.setProperty('--tpl-color', tpl.color);
+    let timeStr = '';
+    if (tpl.start) timeStr = tpl.end ? `${tpl.start} – ${tpl.end}` : tpl.start;
+    item.innerHTML = `
+      <div class="tpl-info">
+        <div class="tpl-label">${escapeHtml(tpl.label)}</div>
+        <div class="tpl-meta">${timeStr || 'Sans horaire'}</div>
+      </div>
+      <div class="tpl-actions">
+        <button data-edit="${tpl.id}">✎</button>
+        <button class="delete" data-del="${tpl.id}">×</button>
+      </div>`;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('[data-edit]').forEach(b => {
+    b.addEventListener('click', () => startEditTpl(b.dataset.edit));
+  });
+  list.querySelectorAll('[data-del]').forEach(b => {
+    b.addEventListener('click', () => deleteTpl(b.dataset.del));
+  });
+}
+function resetTplForm() {
+  document.getElementById('tplLabel').value = '';
+  document.getElementById('tplStart').value = '';
+  document.getElementById('tplEnd').value = '';
+  document.getElementById('tplOvernight').checked = false;
+  selectedTplColor = COLORS[0];
+  renderTplColorPicker();
+  document.getElementById('tplFormTitle').textContent = 'Nouveau raccourci';
+  document.getElementById('saveTplBtn').textContent = 'Enregistrer';
+  editingTemplateId = null;
+}
+function renderTplColorPicker() {
+  const cp = document.getElementById('tplColorPicker');
+  cp.innerHTML = '';
+  COLORS.forEach(c => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (c === selectedTplColor ? ' selected' : '');
+    sw.style.background = c;
+    sw.addEventListener('click', () => {
+      selectedTplColor = c;
+      renderTplColorPicker();
+    });
+    cp.appendChild(sw);
+  });
+}
+function startEditTpl(id) {
+  const tpl = state.templates.find(t => t.id === id);
+  if (!tpl) return;
+  editingTemplateId = id;
+  document.getElementById('tplLabel').value = tpl.label || '';
+  document.getElementById('tplStart').value = tpl.start || '';
+  document.getElementById('tplEnd').value = tpl.end || '';
+  document.getElementById('tplOvernight').checked = !!tpl.overnight;
+  selectedTplColor = tpl.color || COLORS[0];
+  renderTplColorPicker();
+  document.getElementById('tplFormTitle').textContent = 'Modifier le raccourci';
+  document.getElementById('saveTplBtn').textContent = 'Enregistrer les modifications';
+}
+function deleteTpl(id) {
+  showConfirm('Supprimer ce raccourci ? (les événements déjà ajoutés ne sont pas affectés)', () => {
+    state.templates = state.templates.filter(t => t.id !== id);
+    // Si le raccourci en cours de peinture est supprimé, sortir du mode
+    if (paintTemplate && paintTemplate.id === id) {
+      paintTemplate = state.templates.length ? state.templates[0] : null;
+    }
+    saveState();
+    renderTplEditor();
+    if (paintMode) renderPaintTemplates();
+    showToast('Raccourci supprimé');
+  });
+}
+function saveTpl() {
+  const label = document.getElementById('tplLabel').value.trim();
+  const start = document.getElementById('tplStart').value;
+  const end = document.getElementById('tplEnd').value;
+  const overnight = document.getElementById('tplOvernight').checked;
+  if (!label) {
+    showToast('Le libellé est obligatoire');
+    return;
+  }
+  if (editingTemplateId) {
+    const tpl = state.templates.find(t => t.id === editingTemplateId);
+    if (tpl) { tpl.label = label; tpl.start = start; tpl.end = end; tpl.color = selectedTplColor; tpl.overnight = overnight; }
+  } else {
+    state.templates.push({ id: uid(), label, start, end, color: selectedTplColor, overnight });
+  }
+  saveState();
+  renderTplEditor();
+  resetTplForm();
+  // Rafraîchir la barre de peinture si visible
+  if (paintMode) renderPaintTemplates();
+  showToast('Raccourci enregistré');
+}
+
+// ====== CONFIRM ======
+let confirmCallback = null;
+function showConfirm(text, cb) {
+  document.getElementById('confirmText').textContent = text;
+  confirmCallback = cb;
+  document.getElementById('confirmModal').classList.add('show');
+}
+document.getElementById('confirmCancel').addEventListener('click', () => {
+  document.getElementById('confirmModal').classList.remove('show');
+  confirmCallback = null;
+});
+document.getElementById('confirmOk').addEventListener('click', () => {
+  document.getElementById('confirmModal').classList.remove('show');
+  if (confirmCallback) confirmCallback();
+  confirmCallback = null;
+});
+
+// ====== BACKUP / RESTORE ======
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `famille-${ts}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Sauvegarde téléchargée');
+}
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed || typeof parsed !== 'object' || !parsed.events) {
+        showToast('Fichier invalide');
+        return;
+      }
+      showConfirm('Remplacer toutes les données actuelles par celles du fichier ?', () => {
+        state.events = parsed.events || {};
+        if (parsed.templates && parsed.templates.length) state.templates = parsed.templates;
+        saveState();
+        renderCalendar();
+        showToast('Sauvegarde importée');
+      });
+    } catch (err) {
+      showToast('Fichier illisible');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ====== EVENT LISTENERS ======
+document.getElementById('prevMonth').addEventListener('click', () => {
+  currentMonth.setMonth(currentMonth.getMonth() - 1);
+  renderCalendar();
+});
+document.getElementById('nextMonth').addEventListener('click', () => {
+  currentMonth.setMonth(currentMonth.getMonth() + 1);
+  renderCalendar();
+});
+document.getElementById('todayBtn').addEventListener('click', () => {
+  currentMonth = new Date();
+  currentMonth.setDate(1);
+  renderCalendar();
+});
+document.getElementById('menuBackBtn').addEventListener('click', closeMenuView);
+document.getElementById('dayMenuClose').addEventListener('click', closeDayMenuModal);
+document.getElementById('dayMenuModal').addEventListener('click', e => {
+  if (e.target.id === 'dayMenuModal') closeDayMenuModal();
+});
+document.getElementById('horairePickerClose').addEventListener('click', closeHorairePicker);
+document.getElementById('horairePickerModal').addEventListener('click', e => {
+  if (e.target.id === 'horairePickerModal') closeHorairePicker();
+});
+document.getElementById('horaireRemoveBtn').addEventListener('click', () => {
+  if (!menuEditingDate) return;
+  // Retire tous les horaires de travail (events) de ce jour
+  // (et leurs moitiés à cheval pour les Nuits)
+  const dk = menuEditingDate;
+  const events = state.events[dk] || [];
+  const toRemoveGroupIds = new Set();
+  const toRemoveIds = new Set();
+  events.forEach(ev => {
+    if (isWorkHour(ev)) {
+      if (ev.groupId) toRemoveGroupIds.add(ev.groupId);
+      else toRemoveIds.add(ev.id);
+    }
+  });
+  // Suppression dans toutes les cases (groupes nuit à cheval)
+  for (const k of Object.keys(state.events)) {
+    state.events[k] = state.events[k].filter(e => {
+      if (toRemoveIds.has(e.id)) return false;
+      if (e.groupId && toRemoveGroupIds.has(e.groupId)) return false;
+      return true;
+    });
+    if (state.events[k].length === 0) delete state.events[k];
+  }
+  saveState();
+  closeHorairePicker();
+  renderMenuGrid();
+  renderCalendar();
+});
+
+// Swipe up to open menu view, swipe down to close it
+let menuSwipeStartY = 0;
+document.addEventListener('touchstart', e => {
+  menuSwipeStartY = e.touches[0].clientY;
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  const dy = e.changedTouches[0].clientY - menuSwipeStartY;
+  const menuView = document.getElementById('menuView');
+  const isMenuOpen = menuView.classList.contains('show');
+  // Swipe up sur le calendrier → ouvre la vue menu
+  if (!isMenuOpen && !paintMode && !eraseMode && dy < -100 && Math.abs(dy) > 100) {
+    const anyModalOpen = document.querySelector('.modal-backdrop.show');
+    if (!anyModalOpen) openMenuView();
+  }
+  // Swipe down dans la vue menu → ferme la vue (revient au calendrier)
+  if (isMenuOpen && dy > 100 && Math.abs(dy) > 100) {
+    // Ne ferme PAS si on est en train d'éditer un textarea (pour ne pas perdre la saisie)
+    if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
+    closeMenuView();
+  }
+});
+
+// Drag souris (pour tester sur ordi sans mode tactile)
+let mouseDragStartY = null;
+document.addEventListener('mousedown', e => {
+  // Seulement sur le calendrier ou la vue menu, pas dans les modals/header/bars
+  if (e.target.closest('.modal-backdrop.show, header, .paint-bar, .erase-bar, .menu-header, textarea, input, button')) {
+    mouseDragStartY = null;
+    return;
+  }
+  mouseDragStartY = e.clientY;
+});
+document.addEventListener('mouseup', e => {
+  if (mouseDragStartY === null) return;
+  const dy = e.clientY - mouseDragStartY;
+  mouseDragStartY = null;
+  const menuView = document.getElementById('menuView');
+  const isMenuOpen = menuView.classList.contains('show');
+  if (!isMenuOpen && !paintMode && !eraseMode && dy < -100 && Math.abs(dy) > 100) {
+    const anyModalOpen = document.querySelector('.modal-backdrop.show');
+    if (!anyModalOpen) openMenuView();
+  }
+  if (isMenuOpen && dy > 100 && Math.abs(dy) > 100) {
+    if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
+    closeMenuView();
+  }
+});
+
+document.getElementById('paintBtn').addEventListener('click', () => {
+  if (paintMode) exitPaintMode();
+  else enterPaintMode();
+});
+document.getElementById('paintExit').addEventListener('click', exitPaintMode);
+
+document.getElementById('eraseBtn').addEventListener('click', () => {
+  if (eraseMode) exitEraseMode();
+  else enterEraseMode();
+});
+document.getElementById('eraseExit').addEventListener('click', exitEraseMode);
+
+document.getElementById('paintFromHereBtn').addEventListener('click', () => {
+  closeModal();
+  enterPaintMode();
+});
+
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target.id === 'modal') closeModal();
+});
+document.getElementById('addEventBtn').addEventListener('click', saveEvent);
+
+document.getElementById('tplModalClose').addEventListener('click', closeTplModal);
+document.getElementById('tplModal').addEventListener('click', e => {
+  if (e.target.id === 'tplModal') closeTplModal();
+});
+document.getElementById('saveTplBtn').addEventListener('click', saveTpl);
+
+document.getElementById('menuBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('backupMenu').classList.toggle('show');
+});
+document.addEventListener('click', e => {
+  const menu = document.getElementById('backupMenu');
+  if (!menu.contains(e.target) && e.target.id !== 'menuBtn') {
+    menu.classList.remove('show');
+  }
+});
+document.getElementById('darkModeBtn').addEventListener('click', () => {
+  document.getElementById('backupMenu').classList.remove('show');
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('planning-dark-mode', isDark ? '1' : '0');
+  document.getElementById('darkModeBtn').textContent = isDark ? '☀️ Mode clair' : '🌙 Mode sombre';
+  showToast(isDark ? 'Mode sombre activé' : 'Mode clair activé');
+});
+
+// Init dark mode on load
+if (localStorage.getItem('planning-dark-mode') === '1') {
+  document.body.classList.add('dark');
+  document.getElementById('darkModeBtn').textContent = '☀️ Mode clair';
+}
+
+document.getElementById('manageTplBtn').addEventListener('click', () => {
+  document.getElementById('backupMenu').classList.remove('show');
+  openTplModal();
+});
+document.getElementById('exportBtn').addEventListener('click', () => {
+  document.getElementById('backupMenu').classList.remove('show');
+  exportData();
+});
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('backupMenu').classList.remove('show');
+  document.getElementById('importFile').click();
+});
+document.getElementById('importFile').addEventListener('change', e => {
+  if (e.target.files[0]) {
+    importData(e.target.files[0]);
+    e.target.value = '';
+  }
+});
+document.getElementById('clearBtn').addEventListener('click', () => {
+  document.getElementById('backupMenu').classList.remove('show');
+  showConfirm("Effacer TOUTES les données du planning ? Action irréversible. Pensez à exporter d'abord.", () => {
+    state = { events: {}, templates: DEFAULT_TEMPLATES.slice() };
+    saveState();
+    renderCalendar();
+    showToast('Tout a été effacé');
+  });
+});
+
+// Swipe — désactivé en mode peinture pour ne pas faire défiler par erreur
+let touchStartX = 0, touchStartY = 0;
+document.getElementById('calendar').addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+document.getElementById('calendar').addEventListener('touchend', e => {
+  if (paintMode || eraseMode) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dx) > 80 && Math.abs(dy) < 50) {
+    if (dx < 0) currentMonth.setMonth(currentMonth.getMonth() + 1);
+    else currentMonth.setMonth(currentMonth.getMonth() - 1);
+    renderCalendar();
+  }
+});
+
+// ====== INIT ======
+loadState();
+renderColorPicker();
+renderTplColorPicker();
+renderCalendar();
+
+if (screen.orientation && screen.orientation.lock) {
+  screen.orientation.lock('landscape').catch(() => {});
+}
+
+// ====== PWA : enregistre le service worker pour le mode hors-ligne ======
+// Ne s'enregistre que sur HTTPS ou localhost (les navigateurs l'exigent).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.warn('SW registration failed:', err);
+    });
+  });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "Famille",
+  "short_name": "Famille",
+  "description": "Planning familial",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0eef5",
+  "theme_color": "#1a1730",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "Famille.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
