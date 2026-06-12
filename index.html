@@ -2260,6 +2260,7 @@ function importData(file) {
       }
       showConfirm('Remplacer toutes les données actuelles par celles du fichier ?', () => {
         state.events = parsed.events || {};
+        state.menus = parsed.menus || {};
         if (parsed.templates && parsed.templates.length) state.templates = parsed.templates;
         saveState();
         renderCalendar();
