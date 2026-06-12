@@ -25,6 +25,8 @@
     --bg-cell-off: #fbe0e6;
     --bg-cell-off-weekend: #f7c9d3;
     --bg-cell-other: #e2dde9;
+    --bg-cell-past: #cfcfd4;
+    --text-past: #7a7a82;
     --bg-modal: #fbfafd;
     --bg-input: #fbfafd;
     --bg-weekday: #ddd7e8;
@@ -49,6 +51,8 @@
     --bg-cell-off: #3d2530;
     --bg-cell-off-weekend: #4a2a38;
     --bg-cell-other: #231f30;
+    --bg-cell-past: #36363e;
+    --text-past: #6e6e78;
     --bg-modal: #28253a;
     --bg-input: #322d44;
     --bg-weekday: #221e30;
@@ -286,6 +290,10 @@
   }
   .day.other-month { background: var(--bg-cell-other); opacity: 0.55; }
   .day.weekend { background: var(--bg-cell-weekend); }
+  /* Jours passés du mois en cours : vrai gris neutre, clairement différent
+     de la lavande des weekends ou de l'autre mois. Restent cliquables. */
+  .day.past:not(.other-month) { background: var(--bg-cell-past); }
+  .day.past:not(.other-month) .day-number { color: var(--text-past); }
 
   /* Vacances ET jours fériés : MÊME couleur de fond (jaune doux) */
   .day.off { background: var(--bg-cell-off); }
@@ -1433,6 +1441,8 @@ function renderCalendar() {
   calendar.innerHTML = '';
   const today = new Date();
   const todayKey = formatDateKey(today);
+  // Borne « début de journée » pour comparer si une date est antérieure à aujourd'hui
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
   const yearsToCheck = [...new Set(cells.map(c => c.date.getFullYear()))];
   const holidays = new Set();
@@ -1445,6 +1455,8 @@ function renderCalendar() {
     const weekday = date.getDay();
     if (otherMonth) dayEl.classList.add('other-month');
     if (weekday === 0 || weekday === 6) dayEl.classList.add('weekend');
+    // Jour passé du mois courant (strictement avant aujourd'hui, et pas un mois voisin)
+    if (!otherMonth && date < todayStart) dayEl.classList.add('past');
 
     const isHoliday = holidays.has(key);
     const isVac = isVacation(key);
