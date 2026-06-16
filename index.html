@@ -1177,7 +1177,9 @@
 // ====== STATE ======
 const STORAGE_KEY = 'family-planning-v4';
 
-const COLORS = [
+// Palette par défaut. Persistée ensuite dans state.colors, donc l'utilisateur
+// peut supprimer celles dont il ne se sert pas (long-press sur une pastille).
+const DEFAULT_COLORS = [
   // Violets / mauves (3)
   '#6b4d9e', '#9b7bc4', '#c5a8e0',
   // Bleus (3)
@@ -1198,6 +1200,10 @@ const COLORS = [
   '#4a4a4a', '#8a8270',
   // Noir (1)
   '#1a1a1a',
+  // Néons / vifs (11) — demandés
+  '#bfff00', '#00ff00', '#00ff96', '#00ffd5',
+  '#6900ff', '#aa00ff', '#ff00eb', '#ff0069',
+  '#5F9EA0', '#00FA9A', '#C71585',
 ];
 
 function textColorFor(bg) {
@@ -1228,6 +1234,7 @@ let state = {
   events: {},
   templates: DEFAULT_TEMPLATES.slice(),
   menus: {}, // { 'YYYY-MM-DD': { horaire: {label, color, start, end} | null, text: '...' } }
+  colors: DEFAULT_COLORS.slice(),
 };
 
 let currentMonth = new Date();
@@ -1235,8 +1242,8 @@ currentMonth.setDate(1);
 let selectedDate = null;
 let editingEventId = null;
 let editingTemplateId = null;
-let selectedColor = COLORS[0];
-let selectedTplColor = COLORS[0];
+let selectedColor = state.colors[0];
+let selectedTplColor = state.colors[0];
 
 // Mode peinture
 let paintMode = false;
@@ -1323,6 +1330,9 @@ function loadState() {
           ? parsed.templates
           : DEFAULT_TEMPLATES.slice();
         state.menus = parsed.menus || {};
+        state.colors = parsed.colors && parsed.colors.length
+          ? parsed.colors
+          : DEFAULT_COLORS.slice();
       }
       // Migration unique :
       //  1) Réinjecte les raccourcis par défaut manquants (les libellés/couleurs
@@ -2023,7 +2033,7 @@ function resetForm() {
   document.getElementById('evStart').value = '';
   document.getElementById('evEnd').value = '';
   document.getElementById('evLabel').value = '';
-  selectedColor = COLORS[0];
+  selectedColor = state.colors[0];
   renderColorPicker();
   document.getElementById('formTitle').textContent = 'Ajouter manuellement';
   document.getElementById('addEventBtn').textContent = 'Ajouter';
@@ -2032,11 +2042,11 @@ function resetForm() {
 function renderColorPicker() {
   const cp = document.getElementById('colorPicker');
   cp.innerHTML = '';
-  COLORS.forEach(c => {
+  state.colors.forEach(c => {
     const sw = document.createElement('div');
     sw.className = 'color-swatch' + (c === selectedColor ? ' selected' : '');
     sw.style.background = c;
-    sw.addEventListener('click', () => {
+    attachColorSwatchHandlers(sw, c, () => {
       selectedColor = c;
       renderColorPicker();
     });
@@ -2051,7 +2061,7 @@ function startEdit(id) {
   document.getElementById('evStart').value = ev.start || '';
   document.getElementById('evEnd').value = ev.end || '';
   document.getElementById('evLabel').value = ev.label || '';
-  selectedColor = ev.color || COLORS[0];
+  selectedColor = ev.color || state.colors[0];
   renderColorPicker();
   document.getElementById('formTitle').textContent = "Modifier l'événement";
   document.getElementById('addEventBtn').textContent = 'Enregistrer';
@@ -2149,7 +2159,7 @@ function resetTplForm() {
   document.getElementById('tplStart').value = '';
   document.getElementById('tplEnd').value = '';
   document.getElementById('tplOvernight').checked = false;
-  selectedTplColor = COLORS[0];
+  selectedTplColor = state.colors[0];
   renderTplColorPicker();
   document.getElementById('tplFormTitle').textContent = 'Nouveau raccourci';
   document.getElementById('saveTplBtn').textContent = 'Enregistrer';
@@ -2158,15 +2168,69 @@ function resetTplForm() {
 function renderTplColorPicker() {
   const cp = document.getElementById('tplColorPicker');
   cp.innerHTML = '';
-  COLORS.forEach(c => {
+  state.colors.forEach(c => {
     const sw = document.createElement('div');
     sw.className = 'color-swatch' + (c === selectedTplColor ? ' selected' : '');
     sw.style.background = c;
-    sw.addEventListener('click', () => {
+    attachColorSwatchHandlers(sw, c, () => {
       selectedTplColor = c;
       renderTplColorPicker();
     });
     cp.appendChild(sw);
+  });
+}
+
+// Click court : sélectionne la couleur. Long-press (500 ms) : propose la suppression.
+// Fonctionne au touch (tel) et à la souris (desktop, via contextmenu = clic droit).
+function attachColorSwatchHandlers(sw, color, onSelect) {
+  let timer = null;
+  let longFired = false;
+
+  const startLong = () => {
+    longFired = false;
+    timer = setTimeout(() => {
+      longFired = true;
+      if (navigator.vibrate) navigator.vibrate(30);
+      promptDeleteColor(color);
+    }, 500);
+  };
+  const cancelLong = () => {
+    if (timer) { clearTimeout(timer); timer = null; }
+  };
+
+  sw.addEventListener('touchstart', startLong, { passive: true });
+  sw.addEventListener('touchend', cancelLong);
+  sw.addEventListener('touchmove', cancelLong, { passive: true });
+  sw.addEventListener('touchcancel', cancelLong);
+  sw.addEventListener('mousedown', startLong);
+  sw.addEventListener('mouseup', cancelLong);
+  sw.addEventListener('mouseleave', cancelLong);
+
+  sw.addEventListener('click', e => {
+    if (longFired) { e.preventDefault(); e.stopPropagation(); return; }
+    onSelect();
+  });
+  // Clic droit (desktop) = équivalent appui long
+  sw.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    cancelLong();
+    promptDeleteColor(color);
+  });
+}
+
+function promptDeleteColor(color) {
+  if (state.colors.length <= 1) {
+    showToast('Au moins une couleur doit rester dans la palette');
+    return;
+  }
+  showConfirm(`Retirer cette couleur de la palette ?\n(Les événements déjà créés gardent leur couleur.)`, () => {
+    state.colors = state.colors.filter(c => c !== color);
+    if (selectedColor === color) selectedColor = state.colors[0];
+    if (selectedTplColor === color) selectedTplColor = state.colors[0];
+    saveState();
+    renderColorPicker();
+    renderTplColorPicker();
+    showToast('Couleur retirée');
   });
 }
 function startEditTpl(id) {
@@ -2177,7 +2241,7 @@ function startEditTpl(id) {
   document.getElementById('tplStart').value = tpl.start || '';
   document.getElementById('tplEnd').value = tpl.end || '';
   document.getElementById('tplOvernight').checked = !!tpl.overnight;
-  selectedTplColor = tpl.color || COLORS[0];
+  selectedTplColor = tpl.color || state.colors[0];
   renderTplColorPicker();
   document.getElementById('tplFormTitle').textContent = 'Modifier le raccourci';
   document.getElementById('saveTplBtn').textContent = 'Enregistrer les modifications';
@@ -2262,8 +2326,14 @@ function importData(file) {
         state.events = parsed.events || {};
         state.menus = parsed.menus || {};
         if (parsed.templates && parsed.templates.length) state.templates = parsed.templates;
+        if (parsed.colors && parsed.colors.length) state.colors = parsed.colors;
+        // S'assure que la couleur sélectionnée existe toujours dans la palette
+        if (!state.colors.includes(selectedColor)) selectedColor = state.colors[0];
+        if (!state.colors.includes(selectedTplColor)) selectedTplColor = state.colors[0];
         saveState();
         renderCalendar();
+        renderColorPicker();
+        renderTplColorPicker();
         showToast('Sauvegarde importée');
       });
     } catch (err) {
@@ -2447,9 +2517,18 @@ document.getElementById('importFile').addEventListener('change', e => {
 document.getElementById('clearBtn').addEventListener('click', () => {
   document.getElementById('backupMenu').classList.remove('show');
   showConfirm("Effacer TOUTES les données du planning ? Action irréversible. Pensez à exporter d'abord.", () => {
-    state = { events: {}, templates: DEFAULT_TEMPLATES.slice() };
+    state = {
+      events: {},
+      templates: DEFAULT_TEMPLATES.slice(),
+      menus: {},
+      colors: DEFAULT_COLORS.slice(),
+    };
+    selectedColor = state.colors[0];
+    selectedTplColor = state.colors[0];
     saveState();
     renderCalendar();
+    renderColorPicker();
+    renderTplColorPicker();
     showToast('Tout a été effacé');
   });
 });
