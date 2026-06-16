@@ -1334,6 +1334,22 @@ function loadState() {
           ? parsed.colors
           : DEFAULT_COLORS.slice();
       }
+      // Migration unique : ajoute les couleurs néon à la palette des utilisateurs
+      // existants qui les avaient pas encore. Si l'utilisateur en supprime
+      // ensuite, ça reste supprimé (le flag empêche la migration de re-tourner).
+      if (!localStorage.getItem(STORAGE_KEY + '-palette-neon')) {
+        const NEON_COLORS = [
+          '#bfff00', '#00ff00', '#00ff96', '#00ffd5',
+          '#6900ff', '#aa00ff', '#ff00eb', '#ff0069',
+          '#5F9EA0', '#00FA9A', '#C71585',
+        ];
+        let added = 0;
+        NEON_COLORS.forEach(c => {
+          if (!state.colors.includes(c)) { state.colors.push(c); added++; }
+        });
+        localStorage.setItem(STORAGE_KEY + '-palette-neon', '1');
+        if (added > 0) saveState();
+      }
       // Migration unique :
       //  1) Réinjecte les raccourcis par défaut manquants (les libellés/couleurs
       //     sont restaurés même si une version précédente les avait retirés).
