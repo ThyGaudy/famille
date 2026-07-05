@@ -176,6 +176,56 @@
     transform: scale(0.95);
   }
 
+  /* ====== REMINDER BAR (rappels RDV J-0, J-1, J-2) ====== */
+  .reminder-bar {
+    display: none;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-deep) 100%);
+    color: white;
+    padding: 8px 10px 8px 12px;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.15);
+  }
+  .reminder-bar.show { display: flex; }
+  .reminder-bar::-webkit-scrollbar { display: none; }
+  .reminder-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    padding: 2px 8px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 999px;
+  }
+  .reminder-item strong { font-weight: 800; }
+  .reminder-close {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: auto;
+    font-family: inherit;
+  }
+  .reminder-close:active { background: rgba(255,255,255,0.3); }
+  /* Icône cloche sur les événements avec rappel actif dans le calendrier */
+  .event.has-reminder::after {
+    content: '🔔';
+    font-size: 9px;
+    margin-left: 3px;
+    vertical-align: 0;
+  }
+
   /* ====== PAINT MODE BAR ====== */
   .paint-bar {
     display: none;
@@ -1008,6 +1058,8 @@
   <button class="erase-exit" id="eraseExit">Quitter</button>
 </div>
 
+<div class="reminder-bar" id="reminderBar"></div>
+
 <div class="backup-menu" id="backupMenu">
   <button id="darkModeBtn">🌙 Mode sombre</button>
   <div class="separator"></div>
@@ -1104,6 +1156,13 @@
         <div class="form-row">
           <label>Couleur</label>
           <div class="color-picker" id="colorPicker"></div>
+        </div>
+        <div class="form-row" style="align-items:center;">
+          <label for="evReminder" style="cursor:pointer;">🔔 Rappel</label>
+          <label for="evReminder" style="cursor:pointer;flex:1;font-weight:normal;color:var(--text-muted);font-size:12px;min-width:auto;">
+            <input type="checkbox" id="evReminder" style="margin-right:6px;transform:scale(1.2);vertical-align:middle;">
+            Me rappeler 2 jours avant
+          </label>
         </div>
         <button class="btn-add" id="addEventBtn">Ajouter</button>
       </div>
@@ -1517,6 +1576,7 @@ function renderCalendar() {
       e.className = 'event';
       if (ev.span === 'right') e.classList.add('span-right');
       else if (ev.span === 'left') e.classList.add('span-left');
+      if (ev.reminder) e.classList.add('has-reminder');
       e.style.setProperty('--ev-color', ev.color);
       e.style.setProperty('--ev-text', textColorFor(ev.color));
       // Pour les moitiés, n'afficher que le libellé (plus de place pour les horaires)
@@ -1571,6 +1631,9 @@ function renderCalendar() {
     });
     calendar.appendChild(dayEl);
   });
+  // Le contenu des events peut avoir changé (ajout/suppression/edit) :
+  // on rafraîchit le bandeau de rappels en même temps que le calendrier.
+  if (typeof refreshReminderBanner === 'function') refreshReminderBanner();
 }
 
 // ====== DAY MENU MODAL (long press) ======
@@ -2049,6 +2112,7 @@ function resetForm() {
   document.getElementById('evStart').value = '';
   document.getElementById('evEnd').value = '';
   document.getElementById('evLabel').value = '';
+  document.getElementById('evReminder').checked = false;
   selectedColor = state.colors[0];
   renderColorPicker();
   document.getElementById('formTitle').textContent = 'Ajouter manuellement';
@@ -2077,6 +2141,7 @@ function startEdit(id) {
   document.getElementById('evStart').value = ev.start || '';
   document.getElementById('evEnd').value = ev.end || '';
   document.getElementById('evLabel').value = ev.label || '';
+  document.getElementById('evReminder').checked = !!ev.reminder;
   selectedColor = ev.color || state.colors[0];
   renderColorPicker();
   document.getElementById('formTitle').textContent = "Modifier l'événement";
@@ -2109,6 +2174,7 @@ function saveEvent() {
   const start = document.getElementById('evStart').value;
   const end = document.getElementById('evEnd').value;
   const label = document.getElementById('evLabel').value.trim();
+  const reminder = document.getElementById('evReminder').checked;
   if (!label && !start) {
     showToast('Saisir au moins un horaire ou un libellé');
     return;
@@ -2117,11 +2183,14 @@ function saveEvent() {
   if (!state.events[key]) state.events[key] = [];
   if (editingEventId) {
     const ev = state.events[key].find(e => e.id === editingEventId);
-    if (ev) { ev.start = start; ev.end = end; ev.label = label; ev.color = selectedColor; }
+    if (ev) { ev.start = start; ev.end = end; ev.label = label; ev.color = selectedColor; ev.reminder = reminder; }
   } else {
-    state.events[key].push({ id: uid(), start, end, label, color: selectedColor });
+    state.events[key].push({ id: uid(), start, end, label, color: selectedColor, reminder });
   }
   saveState();
+  // Si l'utilisateur veut un rappel, on demande la permission de notifs et on
+  // programme la notif push (si le tel supporte les Notification Triggers).
+  if (reminder) scheduleEventReminder(selectedDate, label || 'RDV');
   renderEventList();
   renderCalendar();
   resetForm();
@@ -2566,11 +2635,111 @@ document.getElementById('calendar').addEventListener('touchend', e => {
   }
 });
 
+// ====== RAPPELS RDV ======
+// Renvoie les événements marqués `reminder: true` qui tombent dans les 2 jours
+// à venir (aujourd'hui J = J-0 inclus, J+1, J+2 inclus).
+function getUpcomingReminders() {
+  const reminders = [];
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const cutoff = new Date(todayStart);
+  cutoff.setDate(cutoff.getDate() + 3); // borne exclusive : J+3
+  Object.entries(state.events || {}).forEach(([key, evs]) => {
+    const [y, m, d] = key.split('-').map(Number);
+    const evDate = new Date(y, m - 1, d);
+    if (evDate < todayStart || evDate >= cutoff) return;
+    (evs || []).forEach(ev => {
+      if (!ev.reminder) return;
+      if (ev.span === 'left') return; // moitié gauche d'une Nuit — déjà couvert par la moitié droite
+      reminders.push({ dateKey: key, date: evDate, event: ev });
+    });
+  });
+  return reminders.sort((a, b) => a.date - b.date);
+}
+
+// Bandeau discret en haut de l'app avec les rappels — solution A (fiable, 100%).
+function refreshReminderBanner() {
+  const bar = document.getElementById('reminderBar');
+  const dismissedKey = 'famille-reminders-dismissed-' + new Date().toISOString().slice(0, 10);
+  if (sessionStorage.getItem(dismissedKey) === '1') {
+    bar.classList.remove('show');
+    return;
+  }
+  const upcoming = getUpcomingReminders();
+  if (upcoming.length === 0) {
+    bar.classList.remove('show');
+    bar.innerHTML = '';
+    return;
+  }
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const items = upcoming.map(r => {
+    const daysAway = Math.round((r.date - todayStart) / 86400000);
+    const when = daysAway === 0 ? "Aujourd'hui" : daysAway === 1 ? 'Demain' : `Dans ${daysAway} j`;
+    const timeStr = r.event.start ? ` ${r.event.start}${r.event.end ? '-' + r.event.end : ''}` : '';
+    return `<span class="reminder-item">📅 <strong>${when}</strong> — ${escapeHtml(r.event.label || 'RDV')}${escapeHtml(timeStr)}</span>`;
+  }).join('');
+  bar.innerHTML = items + '<button class="reminder-close" aria-label="Fermer">×</button>';
+  bar.classList.add('show');
+  bar.querySelector('.reminder-close').addEventListener('click', () => {
+    bar.classList.remove('show');
+    sessionStorage.setItem(dismissedKey, '1');
+  });
+}
+
+// Solution B : programme une notification navigateur locale via l'API
+// Notification Triggers. Support limité (Chrome/Android récent) — si indispo,
+// on continue silencieusement (le bandeau A prend le relais).
+async function scheduleEventReminder(eventDate, label) {
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+  try {
+    if (Notification.permission === 'default') {
+      const p = await Notification.requestPermission();
+      if (p !== 'granted') return;
+    }
+    if (Notification.permission !== 'granted') return;
+    const reg = await navigator.serviceWorker.ready;
+    const trigger = new Date(eventDate);
+    trigger.setDate(trigger.getDate() - 2);
+    trigger.setHours(9, 0, 0, 0);
+    if (trigger.getTime() <= Date.now()) return;
+    if (typeof TimestampTrigger === 'undefined') return; // API pas dispo → tant pis
+    await reg.showNotification('🔔 Rappel — Famille', {
+      body: `${label} dans 2 jours`,
+      icon: 'Famille.png',
+      badge: 'Famille.png',
+      tag: `reminder-${formatDateKey(eventDate)}-${label}`,
+      showTrigger: new TimestampTrigger(trigger.getTime()),
+    });
+  } catch (e) {
+    console.warn('Reminder scheduling failed:', e);
+  }
+}
+
+// Au démarrage, on tente de reprogrammer tous les rappels pour les événements
+// à venir. Sans effet si les notifs sont déjà en attente (même `tag`).
+function rescheduleAllReminders() {
+  const now = Date.now();
+  Object.entries(state.events || {}).forEach(([key, evs]) => {
+    const [y, m, d] = key.split('-').map(Number);
+    const evDate = new Date(y, m - 1, d);
+    if (evDate.getTime() < now) return;
+    (evs || []).forEach(ev => {
+      if (ev.reminder && ev.span !== 'left') {
+        scheduleEventReminder(evDate, ev.label || 'RDV');
+      }
+    });
+  });
+}
+
 // ====== INIT ======
 loadState();
 renderColorPicker();
 renderTplColorPicker();
 renderCalendar();
+refreshReminderBanner();
+// Reprogrammation opportuniste (silencieuse si perm pas encore accordée)
+setTimeout(rescheduleAllReminders, 2000);
 
 if (screen.orientation && screen.orientation.lock) {
   screen.orientation.lock('landscape').catch(() => {});
