@@ -1,6 +1,6 @@
 // Service worker minimaliste : cache l'app pour qu'elle marche hors-ligne.
 // Change la version ci-dessous quand tu modifies l'app pour forcer un refresh.
-const CACHE_NAME = 'famille-v7';
+const CACHE_NAME = 'famille-v8';
 const ASSETS = [
   './',
   './index.html',
