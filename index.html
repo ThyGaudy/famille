@@ -179,43 +179,111 @@
   /* ====== REMINDER BAR (rappels RDV J-0, J-1, J-2) ====== */
   .reminder-bar {
     display: none;
-    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-deep) 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
     color: white;
-    padding: 8px 10px 8px 12px;
+    padding: 10px 8px 10px 12px;
     flex-shrink: 0;
-    align-items: center;
-    gap: 10px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    align-items: stretch;
+    gap: 8px;
     font-size: 12.5px;
     font-weight: 600;
-    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.15);
+    box-shadow:
+      0 3px 10px -3px var(--accent),
+      inset 0 -1px 0 rgba(0,0,0,0.15);
+    position: relative;
+    overflow: hidden;
   }
-  .reminder-bar.show { display: flex; }
-  .reminder-bar::-webkit-scrollbar { display: none; }
+  .reminder-bar.show {
+    display: flex;
+    animation: reminderSlideIn 0.4s cubic-bezier(0.34, 1.5, 0.64, 1);
+  }
+  @keyframes reminderSlideIn {
+    0%   { transform: translateY(-100%); opacity: 0; }
+    100% { transform: translateY(0);      opacity: 1; }
+  }
+  /* Icône cloche pulsante à gauche */
+  .reminder-bell {
+    font-size: 22px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: bellShake 1.8s ease-in-out infinite;
+    transform-origin: 50% 10%;
+    box-shadow: 0 0 0 0 rgba(255,255,255,0.5);
+  }
+  @keyframes bellShake {
+    0%, 60%, 100% { transform: rotate(0); box-shadow: 0 0 0 0 rgba(255,255,255,0.5); }
+    5%   { transform: rotate(-14deg); }
+    10%  { transform: rotate(12deg); }
+    15%  { transform: rotate(-8deg); }
+    20%  { transform: rotate(6deg); }
+    25%  { transform: rotate(-3deg); box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+    30%  { transform: rotate(0); }
+  }
+  .reminder-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .reminder-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.85;
+    line-height: 1;
+  }
+  .reminder-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
   .reminder-item {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     white-space: nowrap;
-    padding: 2px 8px;
-    background: rgba(255,255,255,0.15);
+    padding: 3px 9px;
+    background: rgba(255,255,255,0.18);
     border-radius: 999px;
+    font-size: 12px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .reminder-item strong { font-weight: 800; }
+  .reminder-item .when {
+    font-weight: 800;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .reminder-item .sep {
+    opacity: 0.5;
+    margin: 0 1px;
+  }
   .reminder-close {
-    background: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.18);
     border: none;
     color: white;
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     font-size: 16px;
     line-height: 1;
     cursor: pointer;
     flex-shrink: 0;
-    margin-left: auto;
+    align-self: flex-start;
     font-family: inherit;
+    margin-top: 2px;
   }
   .reminder-close:active { background: rgba(255,255,255,0.3); }
   /* Icône cloche sur les événements avec rappel actif dans le calendrier */
@@ -1064,6 +1132,7 @@
   <button id="darkModeBtn">🌙 Mode sombre</button>
   <div class="separator"></div>
   <button id="manageTplBtn">⭐ Gérer les raccourcis</button>
+  <button id="testNotifBtn">🔔 Tester une notif (10 s)</button>
   <div class="separator"></div>
   <button id="exportBtn">📤 Exporter sauvegarde</button>
   <button id="importBtn">📥 Importer sauvegarde</button>
@@ -2188,13 +2257,20 @@ function saveEvent() {
     state.events[key].push({ id: uid(), start, end, label, color: selectedColor, reminder });
   }
   saveState();
-  // Si l'utilisateur veut un rappel, on demande la permission de notifs et on
-  // programme la notif push (si le tel supporte les Notification Triggers).
-  if (reminder) scheduleEventReminder(selectedDate, label || 'RDV');
   renderEventList();
   renderCalendar();
   resetForm();
-  showToast(editingEventId ? 'Modifié' : 'Ajouté');
+  // Si l'utilisateur veut un rappel, on demande la permission de notifs et on
+  // programme la notif push (si le tel supporte les Notification Triggers).
+  // Le résultat guide le message affiché — on sait toujours ce qui se passe.
+  if (reminder) {
+    const wasEditing = !!editingEventId;
+    scheduleEventReminder(selectedDate, label || 'RDV').then(status => {
+      showToast(reminderStatusMessage(status));
+    });
+  } else {
+    showToast(editingEventId ? 'Modifié' : 'Ajouté');
+  }
 }
 
 // ====== TEMPLATE EDITOR ======
@@ -2585,6 +2661,56 @@ document.getElementById('manageTplBtn').addEventListener('click', () => {
   document.getElementById('backupMenu').classList.remove('show');
   openTplModal();
 });
+// Bouton diagnostic : programme une notif de test dans 10 secondes
+document.getElementById('testNotifBtn').addEventListener('click', async () => {
+  document.getElementById('backupMenu').classList.remove('show');
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    showToast("❌ Ce tel/navigateur ne supporte pas les notifs");
+    return;
+  }
+  if (Notification.permission === 'default') {
+    const p = await Notification.requestPermission();
+    if (p !== 'granted') {
+      showToast("❌ Notifs refusées — activez-les dans Paramètres");
+      return;
+    }
+  }
+  if (Notification.permission !== 'granted') {
+    showToast("❌ Notifs refusées — activez-les dans Paramètres");
+    return;
+  }
+  if (typeof TimestampTrigger === 'undefined') {
+    // On peut au moins montrer une notif immédiate — ça prouve que les notifs
+    // marchent, même si la programmation à J-2 ne sera pas possible.
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification('🔔 Test — Famille', {
+        body: 'Les notifs marchent ! (mais la programmation à date précise n’est pas supportée sur ce tel — le bandeau à l’ouverture prendra le relais)',
+        icon: 'Famille.png',
+        badge: 'Famille.png',
+      });
+      showToast("⚠️ Notif immédiate OK, mais pas de programmation");
+    } catch (e) {
+      showToast("❌ Erreur notif : " + e.message);
+    }
+    return;
+  }
+  // API complète disponible : programmation dans 10 secondes
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const when = Date.now() + 10 * 1000;
+    await reg.showNotification('🔔 Test — Famille', {
+      body: 'Ta notif de test arrive à l’heure. Les rappels J-2 marcheront comme ça.',
+      icon: 'Famille.png',
+      badge: 'Famille.png',
+      tag: 'test-notif-' + when,
+      showTrigger: new TimestampTrigger(when),
+    });
+    showToast("✅ Notif programmée dans 10 s — ferme l'app pour tester");
+  } catch (e) {
+    showToast("❌ Erreur programmation : " + e.message);
+  }
+});
 document.getElementById('exportBtn').addEventListener('click', () => {
   document.getElementById('backupMenu').classList.remove('show');
   exportData();
@@ -2675,11 +2801,18 @@ function refreshReminderBanner() {
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const items = upcoming.map(r => {
     const daysAway = Math.round((r.date - todayStart) / 86400000);
-    const when = daysAway === 0 ? "Aujourd'hui" : daysAway === 1 ? 'Demain' : `Dans ${daysAway} j`;
+    const when = daysAway === 0 ? "Aujourd'hui" : daysAway === 1 ? 'Demain' : `Dans ${daysAway}j`;
     const timeStr = r.event.start ? ` ${r.event.start}${r.event.end ? '-' + r.event.end : ''}` : '';
-    return `<span class="reminder-item">📅 <strong>${when}</strong> — ${escapeHtml(r.event.label || 'RDV')}${escapeHtml(timeStr)}</span>`;
+    return `<span class="reminder-item"><span class="when">${when}</span><span class="sep">•</span>${escapeHtml(r.event.label || 'RDV')}${escapeHtml(timeStr)}</span>`;
   }).join('');
-  bar.innerHTML = items + '<button class="reminder-close" aria-label="Fermer">×</button>';
+  const title = upcoming.length === 1 ? 'Rappel' : `${upcoming.length} rappels`;
+  bar.innerHTML = `
+    <div class="reminder-bell" aria-hidden="true">🔔</div>
+    <div class="reminder-content">
+      <div class="reminder-title">${title}</div>
+      <div class="reminder-items">${items}</div>
+    </div>
+    <button class="reminder-close" aria-label="Fermer">×</button>`;
   bar.classList.add('show');
   bar.querySelector('.reminder-close').addEventListener('click', () => {
     bar.classList.remove('show');
@@ -2690,20 +2823,26 @@ function refreshReminderBanner() {
 // Solution B : programme une notification navigateur locale via l'API
 // Notification Triggers. Support limité (Chrome/Android récent) — si indispo,
 // on continue silencieusement (le bandeau A prend le relais).
+// Renvoie un des statuts suivants :
+//   'scheduled'    → notif push programmée avec succès
+//   'no-api'       → le navigateur ne supporte pas les notifs / Notification Triggers
+//   'no-permission' → l'utilisateur a refusé les notifs
+//   'too-late'     → l'événement est déjà à moins de 2 jours (rien à programmer)
+//   'error'        → erreur inattendue
 async function scheduleEventReminder(eventDate, label) {
-  if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) return 'no-api';
   try {
     if (Notification.permission === 'default') {
       const p = await Notification.requestPermission();
-      if (p !== 'granted') return;
+      if (p !== 'granted') return 'no-permission';
     }
-    if (Notification.permission !== 'granted') return;
+    if (Notification.permission !== 'granted') return 'no-permission';
+    if (typeof TimestampTrigger === 'undefined') return 'no-api';
     const reg = await navigator.serviceWorker.ready;
     const trigger = new Date(eventDate);
     trigger.setDate(trigger.getDate() - 2);
     trigger.setHours(9, 0, 0, 0);
-    if (trigger.getTime() <= Date.now()) return;
-    if (typeof TimestampTrigger === 'undefined') return; // API pas dispo → tant pis
+    if (trigger.getTime() <= Date.now()) return 'too-late';
     await reg.showNotification('🔔 Rappel — Famille', {
       body: `${label} dans 2 jours`,
       icon: 'Famille.png',
@@ -2711,8 +2850,21 @@ async function scheduleEventReminder(eventDate, label) {
       tag: `reminder-${formatDateKey(eventDate)}-${label}`,
       showTrigger: new TimestampTrigger(trigger.getTime()),
     });
+    return 'scheduled';
   } catch (e) {
     console.warn('Reminder scheduling failed:', e);
+    return 'error';
+  }
+}
+
+// Feedback humain après tentative de programmation
+function reminderStatusMessage(status) {
+  switch (status) {
+    case 'scheduled':     return '✅ Notif programmée pour J-2 à 9h';
+    case 'no-api':        return "🔔 Rappel en app (notif push non dispo sur ce tel)";
+    case 'no-permission': return "🔔 Rappel en app (notifs refusées)";
+    case 'too-late':      return "🔔 Rappel en app (événement dans moins de 2 jours)";
+    default:              return "🔔 Rappel en app (erreur notif)";
   }
 }
 
