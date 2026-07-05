@@ -2769,7 +2769,7 @@ function getUpcomingReminders() {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const cutoff = new Date(todayStart);
-  cutoff.setDate(cutoff.getDate() + 3); // borne exclusive : J+3
+  cutoff.setDate(cutoff.getDate() + 3); // borne exclusive : J+3 (couvre J-0, J-1, J-2)
   Object.entries(state.events || {}).forEach(([key, evs]) => {
     const [y, m, d] = key.split('-').map(Number);
     const evDate = new Date(y, m - 1, d);
@@ -2892,6 +2892,13 @@ renderCalendar();
 refreshReminderBanner();
 // Reprogrammation opportuniste (silencieuse si perm pas encore accordée)
 setTimeout(rescheduleAllReminders, 2000);
+
+// Rafraîchit le bandeau à chaque retour d'arrière-plan : si tu laisses l'app
+// ouverte plusieurs jours et que tu re-actives l'écran, tu vois pile-poil
+// le RDV de demain dès que tu regardes.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshReminderBanner();
+});
 
 if (screen.orientation && screen.orientation.lock) {
   screen.orientation.lock('landscape').catch(() => {});
